@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    "ninoseki.vscode-pylens",
+    "tamasfe.even-better-toml"
+  ]
+}

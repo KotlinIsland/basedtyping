@@ -1,0 +1,40 @@
+[tool.poetry]
+authors = ["DetachHead <detachhead@users.noreply.github.com>"]
+description = ""
+name = "testpy"
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+typeguard = "^2.12.1"
+
+[tool.poetry.dev-dependencies]
+black = "^21.9b0"
+flake8 = "^3.9.2"
+mypy = "^0.910"
+pylint = "^2.11.1"
+pytest = "^5.2"
+
+[build-system]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
+
+[tool.mypy]
+allow_redefinition = true
+disallow_any_decorated = true
+disallow_any_explicit = true
+disallow_any_expr = true
+disallow_any_generics = true
+disallow_any_unimported = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+show_error_codes = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_ignores = true
+
+[tool.flake8]
+select = "E,F,W"
