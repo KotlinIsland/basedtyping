@@ -16,12 +16,13 @@
   "python.linting.enabled": true,
   "files.autoSave": "onFocusChange",
   "python.linting.pylintCategorySeverity.convention": "Error",
-  "search.useIgnoreFiles": false,
+  "search.useIgnoreFiles": true,
   "git.useCommitInputAsStashMessage": true,
   "editor.codeActionsOnSave": {
     "source.fixAll": true,
     "source.organizeImports": true
   },
   "python.linting.flake8CategorySeverity.W": "Error",
-  "files.eol": "\n"
+  "files.eol": "\n",
+  "python.testing.pytestEnabled": true
 }

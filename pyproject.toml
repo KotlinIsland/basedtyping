@@ -1,19 +1,19 @@
 [tool.poetry]
 authors = ["DetachHead <detachhead@users.noreply.github.com>"]
 description = ""
-name = "testpy"
+name = "basedtyping"
 version = "0.1.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-typeguard = "^2.12.1"
 
 [tool.poetry.dev-dependencies]
 black = "^21.9b0"
 flake8 = "^3.9.2"
-mypy = "^0.910"
+basedmypy = "^1.1.3"
 pylint = "^2.11.1"
-pytest = "^5.2"
+pytest = "^6.2.5"
+isort = "^5.10.1"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
@@ -36,5 +36,10 @@ warn_return_any = true
 warn_unreachable = true
 warn_unused_ignores = true
 
-[tool.flake8]
-select = "E,F,W"
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+combine_as_imports = true
+
+[tool.black]
+target-version = ["py310"]
