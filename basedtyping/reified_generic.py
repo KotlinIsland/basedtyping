@@ -66,4 +66,6 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
 
         def __class_getitem__(cls, item: T) -> type[ReifiedGeneric[T]]:
             generic_alias = super().__class_getitem__(item)
-            return _ReifiedGenericAlias(generic_alias.__origin__, generic_alias.__args__)
+            return _ReifiedGenericAlias(
+                generic_alias.__origin__, generic_alias.__args__
+            )
