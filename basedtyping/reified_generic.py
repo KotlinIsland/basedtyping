@@ -19,11 +19,9 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
         ):
             if parameter.__covariant__ and not is_subclass(subclass_arg, self_arg):
                 return False
-            elif parameter.__contravariant__ and not is_subclass(
-                self_arg, subclass_arg
-            ):
+            if parameter.__contravariant__ and not is_subclass(self_arg, subclass_arg):
                 return False
-            elif self_arg is not subclass_arg:
+            if self_arg is not subclass_arg:
                 return False
         return True
 
@@ -38,11 +36,9 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
         ):
             if parameter.__covariant__ and not is_subclass(subclass_arg, self_arg):
                 return False
-            elif parameter.__contravariant__ and not is_subclass(
-                self_arg, subclass_arg
-            ):
+            if parameter.__contravariant__ and not is_subclass(self_arg, subclass_arg):
                 return False
-            elif self_arg is not subclass_arg:
+            if self_arg is not subclass_arg:
                 return False
         return True
 
