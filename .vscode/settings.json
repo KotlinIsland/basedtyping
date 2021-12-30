@@ -24,5 +24,7 @@
   },
   "python.linting.flake8CategorySeverity.W": "Error",
   "files.eol": "\n",
-  "python.testing.pytestEnabled": true
+  "python.testing.pytestEnabled": true,
+  "python.linting.pylintCategorySeverity.refactor": "Error",
+  "python.linting.pylintCategorySeverity.warning": "Error"
 }
