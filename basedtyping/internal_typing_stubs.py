@@ -41,7 +41,7 @@ if typing.TYPE_CHECKING:
             _typevar_types: type[typing.TypeVar] = typing.TypeVar,
             _paramspec_tvars: bool = False,
         ):
-            self.__args__: tuple[type]
+            self.__args__: tuple[type, ...]
             self.__parameters__: tuple[typing.TypeVar, ...]
             self._typevar_types = _typevar_types
             self._paramspec_tvars = _paramspec_tvars
