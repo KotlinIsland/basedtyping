@@ -43,3 +43,23 @@ combine_as_imports = true
 
 [tool.black]
 target-version = ["py310"]
+
+[tool.pylint.MASTER]
+fail-on = "I"
+
+[tool.pylint."MESSAGE CONTROL"]
+disable = [
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "invalid-name",               # https://github.com/PyCQA/pylint/issues/3401
+    "fixme",
+    "useless-import-alias",       # required when using no-implicit-reexport in mypy
+    "no-member",                  # handled by mypy
+    "inherit-non-class",          # handled by mypy, false positive on ReifiedGeneric
+    "too-few-public-methods",
+]
+enable = ["useless-suppression", "deprecated-pragma"]
+
+[tool.pylint.FORMAT]
+max-line-length = 200
