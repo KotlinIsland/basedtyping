@@ -24,8 +24,8 @@ def test_args_and_params() -> None:
         == Reified[int, str].__args__
     )
     assert (
-        Normal[int, str].__parameters__  # type:ignore[attr-defined,misc]
-        == Reified[int, str].__parameters__
+        Normal[int, str].__origin__.__parameters__  # type:ignore[attr-defined,misc]
+        == Reified[int, str].__origin__.__parameters__  # type:ignore[attr-defined,misc]
     )
 
 
