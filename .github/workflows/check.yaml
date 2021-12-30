@@ -15,8 +15,8 @@ jobs:
         with:
           poetry-version: "1.1.12"
       - run: poetry install
-      - run: mypy .
-      - run: black .
-      - run: flake8 .
-      - run: pylint basedtyping tests
-      - run: pytest
+      - run: poetry run mypy .
+      - run: poetry run black .
+      - run: poetry run flake8 .
+      - run: poetry run pylint basedtyping tests
+      - run: poetry run pytest
