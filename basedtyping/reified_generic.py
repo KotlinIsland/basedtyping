@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generic, Protocol, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, NoReturn, Protocol, TypeVar, cast
 
 from basedtyping.generics import T
 from basedtyping.internal_typing_stubs import _GenericAlias
@@ -8,6 +8,22 @@ from basedtyping.runtime_checks import is_subclass
 
 
 class _ReifiedGenericAlias(_GenericAlias, _root=True):
+    def __call__(self, *args: NoReturn, **kwargs: NoReturn) -> object:
+        """copied from _GenericAlias but modified to call _actual_call instead of __call__"""
+        if not self._inst:
+            raise TypeError(
+                f"Type {self._name} cannot be instantiated; "
+                f"use {self.__origin__.__name__}() instead"
+            )
+        result = cast(_ReifiedGenericMetaclass, self.__origin__)._actual_call(
+            *args, **kwargs
+        )
+        try:
+            result.__orig_class__ = self  # type:ignore[attr-defined]
+        except AttributeError:
+            pass
+        return result
+
     def _type_vars(self) -> tuple[TypeVar, ...]:
         """gets a ``tuple`` of all the ``TypeVar``s defined in the `__origin__`.
 
@@ -51,21 +67,33 @@ class OrigClass(Protocol):
     __parameters__: tuple[TypeVar, ...]
 
 
-class _ReifiedGenericMetaclass(type, OrigClass):
+class NotReifiedException(Exception):
     pass
 
 
+class _ReifiedGenericMetaclass(type, OrigClass):
+    def _actual_call(cls, *args: NoReturn, **kwargs: NoReturn) -> object:
+        """the actual  __call__ method for the generdic alias's ``__origin__``"""
+        return cast(object, super().__call__(*args, **kwargs))
+
+    def __call__(cls, *args: NoReturn, **kwargs: NoReturn) -> object:
+        """a placeholder ``__call__`` method that only gets called if the ``ReifiedGeneric`` being instanciated isn't a ``_ReifiedGenericAlias``"""
+        raise NotReifiedException(
+            f"cannot instanciate ReifiedGeneric '{cls.__name__}' because its generics were not reified. "
+            "the generics must be explicitly specified in the instanciation such that it can create a generic alias with the reified generics.\n\n"
+            "for example:\n\n"
+            "foo: Foo[int] = Foo()  # wrong\n"
+            "foo = Foo[int]()  # correct"
+        )
+
+
 class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
-    """
-    TODO: fail if generics not provided
-    """
+    # TODO: somehow make this an instance property, but doing that with an `__init__` messes up the MRO (see the ReifiedList test)
+    __orig_class__: OrigClass
 
-    def __init__(self) -> None:
-        self.__orig_class__: OrigClass
-
-    # mypy doesn't check the signature of __class_getitem__ but complains when it doesn't match its signature in another base class
-    # this is purely a runtime thing anyway so we can just do this
     if not TYPE_CHECKING:
+        # mypy doesn't check the signature of __class_getitem__ but complains when it doesn't match its signature in another base class
+        # this is purely a runtime thing anyway so we can just do this
 
         def __class_getitem__(cls, item: T) -> type[ReifiedGeneric[T]]:
             generic_alias = super().__class_getitem__(item)

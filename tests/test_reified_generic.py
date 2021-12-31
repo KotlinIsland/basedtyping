@@ -1,7 +1,9 @@
 from typing import Generic, TypeVar
 
+from pytest import raises
+
 from basedtyping.generics import T
-from basedtyping.reified_generic import ReifiedGeneric
+from basedtyping.reified_generic import NotReifiedException, ReifiedGeneric
 
 T2 = TypeVar("T2")
 
@@ -10,7 +12,7 @@ class Reified(ReifiedGeneric[tuple[T, T2]]):
     ...
 
 
-class ReifiedList(list[T], ReifiedGeneric[tuple[T]]):
+class ReifiedList(ReifiedGeneric[tuple[T]], list[T]):
     ...
 
 
@@ -31,7 +33,7 @@ def test_args_and_params() -> None:
 
 def test_reified_list() -> None:
     it = ReifiedList[int]([1, 2, 3]).__orig_class__
-    assert it.__orig_bases__[0].__origin__ == list  # type:ignore[attr-defined,misc]
+    assert it.__origin__ == ReifiedList  # type:ignore[attr-defined,misc]
     assert it.__args__ == (int,)
     assert it.__parameters__ == ()
 
@@ -45,3 +47,8 @@ def test_isinstance() -> None:
 def test_issubclass() -> None:
     assert issubclass(Reified[int, str], Reified[int, str])  # type:ignore[misc]
     assert not issubclass(Reified[int, str], Reified[int, int])  # type:ignore[misc]
+
+
+def test_reified_generic_without_generic_alias() -> None:
+    with raises(NotReifiedException):
+        Reified()  # pylint:disable=no-value-for-parameter
