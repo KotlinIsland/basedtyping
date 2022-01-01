@@ -88,7 +88,38 @@ class _ReifiedGenericMetaclass(type, OrigClass):
 
 
 class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
+    """a ``Generic`` where the types of the ``TypeVars`` are checked to be reified (and visible at type-time),
+    ie. can be accessed at runtime
+
+    for example:
+
+    >>> class Foo(ReifiedGeneric[T]):
+    ...     def create_instance(self) -> T:
+    ...         cls = self.__orig_class__.__args__[0]
+    ...         return cls()
+    ...
+    ...  foo: Foo[int] = Foo() # error: generic cannot be reified
+    ...  foo = Foo[int]() # no error, as the generic was reified via the generic alias
+
+    to define multiple generics, use a tuple type:
+
+    >>> class Foo(ReifiedGeneric[tuple[T, U]]):
+    ...     ...
+    ...
+    ... foo = Foo[int, str]()
+
+    since the generics are guaranteed to be reified, that means ``isinstance`` and ``issubclass`` checks work as well:
+
+    >>> isinstance(Foo[int, str](), Foo[int, int])  # type:ignore[misc]
+    False
+
+    note: basedmypy currently doesn't allow generics in ``isinstance`` and ``issubclass`` checks, so for now you have to use
+    ``basedtyping.runtime_checks.is_subclass`` for subclass checks and ``# type:ignore[misc]`` for instance checks. this issue
+    is tracked [here](https://github.com/KotlinIsland/basedmypy/issues/5)
+    """
+
     # TODO: somehow make this an instance property, but doing that with an `__init__` messes up the MRO (see the ReifiedList test)
+    # currently mypy can't even tell the difference anyway https://github.com/python/mypy/issues/11832
     __orig_class__: OrigClass
 
     if not TYPE_CHECKING:
