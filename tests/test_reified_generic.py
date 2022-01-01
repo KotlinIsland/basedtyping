@@ -2,8 +2,10 @@ from typing import Generic, TypeVar
 
 from pytest import raises
 
-from basedtyping.generics import T
+from basedtyping.generics import T, T_co, T_cont
 from basedtyping.reified_generic import NotReifiedException, ReifiedGeneric
+
+# pylint:disable=no-self-use
 
 T2 = TypeVar("T2")
 
@@ -52,3 +54,26 @@ def test_issubclass() -> None:
 def test_reified_generic_without_generic_alias() -> None:
     with raises(NotReifiedException):
         Reified()  # pylint:disable=no-value-for-parameter
+
+
+class TestVariance:
+    def test_covariant(self) -> None:
+        class Foo(ReifiedGeneric[T_co]):
+            pass
+
+        assert isinstance(Foo[int](), Foo[int | str])  # type:ignore[misc]
+        assert not isinstance(Foo[int | str](), Foo[int])  # type:ignore[misc]
+
+    def test_contravariant(self) -> None:
+        class Foo(ReifiedGeneric[T_cont]):
+            pass
+
+        assert isinstance(Foo[int | str](), Foo[int])  # type:ignore[misc]
+        assert not isinstance(Foo[int](), Foo[int | str])  # type:ignore[misc]
+
+    def test_invariant(self) -> None:
+        class Foo(ReifiedGeneric[T]):
+            pass
+
+        assert not isinstance(Foo[int](), Foo[int | str])  # type:ignore[misc]
+        assert not isinstance(Foo[int | str](), Foo[int])  # type:ignore[misc]
