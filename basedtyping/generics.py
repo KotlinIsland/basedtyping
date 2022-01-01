@@ -2,10 +2,10 @@
 
 from typing import TypeVar
 
-from basedtyping.callables import AnyFunction
+from basedtyping.callables import Function
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
 T_cont = TypeVar("T_cont", contravariant=True)
-Fn = TypeVar("Fn", bound=AnyFunction)
+Fn = TypeVar("Fn", bound=Function)
 Self = TypeVar("Self")
