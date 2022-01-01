@@ -37,12 +37,14 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
             args,
             strict=True,
         ):
-            if parameter.__covariant__ and not is_subclass(subclass_arg, self_arg):
-                return False
-            if parameter.__contravariant__ and not is_subclass(self_arg, subclass_arg):
-                return False
-            if self_arg is not subclass_arg:
-                return False
+            if not parameter.__contravariant__:
+                # if it's covariant (or invariant in which case check both ways):
+                if not is_subclass(subclass_arg, self_arg):
+                    return False
+            if not parameter.__covariant__:
+                # if it's contravariant (or invariant in which case check both ways):
+                if not is_subclass(self_arg, subclass_arg):
+                    return False
         return True
 
     def __subclasscheck__(self, subclass: object) -> bool:
