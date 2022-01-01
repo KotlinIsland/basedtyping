@@ -73,7 +73,7 @@ class NotReifiedException(Exception):
 
 class _ReifiedGenericMetaclass(type, OrigClass):
     def _actual_call(cls, *args: NoReturn, **kwargs: NoReturn) -> object:
-        """the actual  __call__ method for the generdic alias's ``__origin__``"""
+        """the actual  ``__call__`` method for the generic alias's ``__origin__``"""
         return cast(object, super().__call__(*args, **kwargs))
 
     def __call__(cls, *args: NoReturn, **kwargs: NoReturn) -> object:
