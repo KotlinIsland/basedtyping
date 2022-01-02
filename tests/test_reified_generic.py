@@ -3,7 +3,11 @@ from typing import Generic, TypeVar
 from pytest import raises
 
 from basedtyping.generics import T, T_co, T_cont
-from basedtyping.reified_generic import NotReifiedException, ReifiedGeneric
+from basedtyping.reified_generic import (
+    NotReifiedError,
+    ReifiedGeneric,
+    UnboundTypeVarError,
+)
 
 # pylint:disable=no-self-use
 
@@ -52,7 +56,7 @@ def test_issubclass() -> None:
 
 
 def test_reified_generic_without_generic_alias() -> None:
-    with raises(NotReifiedException):
+    with raises(NotReifiedError):
         Reified()  # pylint:disable=no-value-for-parameter
 
 
@@ -77,3 +81,24 @@ class TestVariance:
 
         assert not isinstance(Foo[int](), Foo[int | str])  # type:ignore[misc]
         assert not isinstance(Foo[int | str](), Foo[int])  # type:ignore[misc]
+
+
+class TestUnresolvedGenerics:
+    """mypy should catch these, but it doesn't due to https://github.com/python/mypy/issues/7084"""
+
+    def test_instanciate(self) -> None:
+        with raises(UnboundTypeVarError):
+            Reified[int, T]()
+
+    def test_isinstance(self) -> None:
+        with raises(UnboundTypeVarError):
+            isinstance(Reified[int, str](), Reified[T, int])  # type:ignore[misc]
+
+    class TestIsSubclass:
+        def test_other(self) -> None:
+            with raises(UnboundTypeVarError):
+                issubclass(Reified[int, T], Reified[int, int])  # type:ignore[misc]
+
+        def test_self(self) -> None:
+            with raises(UnboundTypeVarError):
+                issubclass(Reified[int, int], Reified[int, T])  # type:ignore[misc]
