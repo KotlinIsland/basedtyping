@@ -4,9 +4,9 @@ not a .pyi file because we don't want to replace the types for the entire typing
 
 import typing
 
-from basedtyping.generics import Self
-
 if typing.TYPE_CHECKING:
+
+    _Self = typing.TypeVar("_Self")
 
     class _Final:
         """Mixin to prohibit subclassing"""
@@ -60,12 +60,12 @@ if typing.TYPE_CHECKING:
         def __ror__(self, left: object) -> typing._SpecialForm:
             ...
 
-        def __getitem__(self: Self, params: _Params) -> Self:
+        def __getitem__(self: _Self, params: _Params) -> _Self:
             ...
 
         def copy_with(  # pylint:disable=no-self-use
-            self: Self, params: _Params  # pylint:disable=unused-argument
-        ) -> Self:
+            self: _Self, params: _Params  # pylint:disable=unused-argument
+        ) -> _Self:
             ...
 
         # TODO: wtf is this
