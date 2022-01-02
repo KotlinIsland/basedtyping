@@ -1,6 +1,10 @@
 """stubs for the internal "type machinery" defined in the typing module.
 
-not a .pyi file because we don't want to replace the types for the entire typing module"""
+not a .pyi file because we don't want to replace the types for the entire typing module
+
+you probably shouldn't use anything here since it will eventually be moved to basedtypeshed.
+see https://github.com/KotlinIsland/basedtypeshed/pull/3 and https://github.com/KotlinIsland/basedtypeshed/issues/4
+"""
 
 import typing
 
