@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Generic, NoReturn, Protocol, TypeVar, cast
 
 from basedtyping.generics import T
 from basedtyping.internal_typing_stubs import _GenericAlias
-from basedtyping.runtime_checks import is_subclass
+from basedtyping.runtime_checks import issubform
 
 
 class _ReifiedGenericAlias(_GenericAlias, _root=True):
@@ -39,17 +39,17 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
         ):
             if not parameter.__contravariant__:
                 # if it's covariant (or invariant in which case check both ways):
-                if not is_subclass(subclass_arg, self_arg):
+                if not issubform(subclass_arg, self_arg):
                     return False
             if not parameter.__covariant__:
                 # if it's contravariant (or invariant in which case check both ways):
-                if not is_subclass(self_arg, subclass_arg):
+                if not issubform(self_arg, subclass_arg):
                     return False
         return True
 
     def __subclasscheck__(self, subclass: object) -> bool:
         # could be any random class, check it first
-        if not isinstance(subclass, _GenericAlias) or not is_subclass(
+        if not isinstance(subclass, _GenericAlias) or not issubform(
             subclass.__origin__, self.__origin__
         ):
             return False
