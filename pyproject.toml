@@ -10,7 +10,8 @@ python = "^3.10"
 [tool.poetry.dev-dependencies]
 black = "^21.9b0"
 flake8 = "^3.9.2"
-basedmypy = "^1.1.3"
+# https://github.com/KotlinIsland/basedmypy/pull/131
+basedmypy = { git = "https://github.com/KotlinIsland/basedmypy.git", rev = "e5d40fc37d8d6eca75d8784020d82b4574b042b7" }
 pylint = "^2.11.1"
 pytest = "^6.2.5"
 isort = "^5.10.1"

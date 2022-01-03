@@ -1,8 +1,15 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Generic, NoReturn, Protocol, TypeVar, cast
+from typing import (
+    TYPE_CHECKING,
+    Generic,
+    NoReturn,
+    Protocol,
+    TypeVar,
+    _GenericAlias,
+    cast,
+)
 
-from basedtyping._internal_typing_stubs import _GenericAlias
 from basedtyping.generics import T
 from basedtyping.runtime_checks import issubform
 
