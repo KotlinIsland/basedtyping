@@ -1,6 +1,7 @@
 from types import UnionType
 from typing import Sequence, cast
 
+from basedtyping import OldUnionType
 
 
 # TODO: make this work with any "form", not just unions
@@ -14,8 +15,8 @@ def issubform(type1: type | UnionType, type2: type | UnionType) -> bool:
     >>> issubform(int | str, object)
     True
     """
-    if isinstance(type1, UnionType):
-        for t in cast(Sequence[type], type1.__args__):
+    if isinstance(type1, UnionType | OldUnionType):
+        for t in cast(Sequence[type], cast(UnionType, type1).__args__):
             if not issubclass(t, type2):
                 return False
         return True
