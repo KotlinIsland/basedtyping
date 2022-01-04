@@ -2,10 +2,10 @@
 
 this is the equivalent of the `types` module"""
 
-from typing import Literal, Union
+from typing import Final, Literal, Union
 
-LiteralType = type(Literal[1])
+LiteralType: Final = type(Literal[1])
 """A type that can be  used to check if type hints are a typing.Literal instance"""
 
-OldUnionType = type(Union[str, int])
+OldUnionType: Final = type(Union[str, int])
 """A type that can be used to check if type hints are a typing.Union instance."""
