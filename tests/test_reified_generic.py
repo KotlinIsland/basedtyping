@@ -84,21 +84,58 @@ class TestVariance:
 
 
 class TestUnresolvedGenerics:
-    """mypy should catch these, but it doesn't due to https://github.com/python/mypy/issues/7084"""
+    class TestUnbound:
+        """mypy should catch these, but it doesn't due to https://github.com/python/mypy/issues/7084"""
 
-    def test_instanciate(self) -> None:
-        with raises(UnboundTypeVarError):
-            Reified[int, T]()
-
-    def test_isinstance(self) -> None:
-        with raises(UnboundTypeVarError):
-            isinstance(Reified[int, str](), Reified[T, int])  # type:ignore[misc]
-
-    class TestIsSubclass:
-        def test_other(self) -> None:
+        def test_instanciate(self) -> None:
             with raises(UnboundTypeVarError):
-                issubclass(Reified[int, T], Reified[int, int])  # type:ignore[misc]
+                Reified[int, T]()
 
-        def test_self(self) -> None:
+        def test_isinstance(self) -> None:
             with raises(UnboundTypeVarError):
-                issubclass(Reified[int, int], Reified[int, T])  # type:ignore[misc]
+                isinstance(Reified[int, str](), Reified[T, int])  # type:ignore[misc]
+
+        class TestIsSubclass:
+            def test_other(self) -> None:
+                with raises(UnboundTypeVarError):
+                    issubclass(Reified[int, T], Reified[int, int])  # type:ignore[misc]
+
+            def test_self(self) -> None:
+                with raises(UnboundTypeVarError):
+                    issubclass(Reified[int, int], Reified[int, T])  # type:ignore[misc]
+
+    class TestBoundAtTypeTime:
+        def test_instanciate(self) -> None:
+            def function(_value: T) -> None:
+                with raises(UnboundTypeVarError):
+                    Reified[int, T]()
+
+            function(1)
+
+        def test_isinstance(self) -> None:
+            def function(_value: T) -> None:
+                with raises(UnboundTypeVarError):
+                    isinstance(
+                        Reified[int, str](), Reified[T, int]
+                    )  # type:ignore[misc]
+
+            function("")
+
+        class TestIsSubclass:
+            def test_other(self) -> None:
+                def function(_value: T) -> None:
+                    with raises(UnboundTypeVarError):
+                        issubclass(
+                            Reified[int, T], Reified[int, int]
+                        )  # type:ignore[misc]
+
+                function(1)
+
+            def test_self(self) -> None:
+                def function(_value: T) -> None:
+                    with raises(UnboundTypeVarError):
+                        issubclass(
+                            Reified[int, int], Reified[int, T]
+                        )  # type:ignore[misc]
+
+                function("")
