@@ -46,10 +46,7 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
         result = cast(_ReifiedGenericMetaclass, self.__origin__)._actual_call(
             *args, **kwargs
         )
-        try:
-            result.__orig_class__ = self  # type:ignore[attr-defined]
-        except AttributeError:
-            pass
+        result.__orig_class__ = self  # type:ignore[attr-defined]
         return result
 
     def _check_generics_reified(self) -> None:
