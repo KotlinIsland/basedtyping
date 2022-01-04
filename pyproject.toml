@@ -59,6 +59,7 @@ disable = [
     "no-member",                  # handled by mypy
     "inherit-non-class",          # handled by mypy, false positive on ReifiedGeneric
     "too-few-public-methods",
+    "unused-import",              # false negatives + handled by flake8
 ]
 enable = ["useless-suppression", "deprecated-pragma"]
 
