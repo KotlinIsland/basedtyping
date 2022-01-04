@@ -2,6 +2,8 @@ from types import UnionType
 from typing import Sequence, cast
 
 
+
+# TODO: make this work with any "form", not just unions
 def issubform(type1: type | UnionType, type2: type | UnionType) -> bool:
     """``issubclass`` but works with a union as the first arg (like it does for the second arg)
 
