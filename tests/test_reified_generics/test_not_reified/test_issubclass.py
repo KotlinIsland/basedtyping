@@ -1,6 +1,6 @@
 from pytest import raises
 
-from basedtyping import ReifiedGeneric, T, UnboundTypeVarError
+from basedtyping import MissingTypeParametersError, ReifiedGeneric, T
 
 
 class Reified(ReifiedGeneric[T]):
@@ -8,10 +8,10 @@ class Reified(ReifiedGeneric[T]):
 
 
 def test_other() -> None:
-    with raises(UnboundTypeVarError):
+    with raises(MissingTypeParametersError):
         issubclass(Reified[T], Reified[int])  # type:ignore[misc]
 
 
 def test_self() -> None:
-    with raises(UnboundTypeVarError):
+    with raises(MissingTypeParametersError):
         issubclass(Reified[int], Reified[T])  # type:ignore[misc]

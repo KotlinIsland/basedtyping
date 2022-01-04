@@ -51,7 +51,7 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
 
     def _check_generics_reified(self) -> None:
         if self.__parameters__:
-            raise UnboundTypeVarError(
+            raise MissingTypeParametersError(
                 f"Type {self.__origin__.__name__} cannot be instantiated; "
                 "generic alias with non-reified generics detected: {self.__parameters__}"
             )
@@ -110,11 +110,15 @@ class ReifiedGenericError(TypeError):
 
 
 class NotReifiedError(ReifiedGenericError):
-    """raised when a ``ReifiedGeneric`` is instanciated without using a generic alias (ie. the generics can't be reified)"""
+    """raised when a ``ReifiedGeneric`` is instanciated without using a generic alias
+
+    ie. ``foo: Foo[int] = Foo()`` instead of ``foo = Foo[int]()``"""
 
 
-class UnboundTypeVarError(ReifiedGenericError):
-    """raised when a ``ReifiedGeneric`` is instanciated, ``isinstance`` checked or ``issubclass`` checked with an unbound ``TypeVar``"""
+class MissingTypeParametersError(ReifiedGenericError):
+    """Raised when a ``ReifiedGeneric`` is instanciated with a non-reified ``TypeVar`` instead of a type parameter
+
+    ie. ``Foo[T]()`` instead of ``Foo[int]()``"""
 
 
 class _ReifiedGenericMetaclass(type, OrigClass):
