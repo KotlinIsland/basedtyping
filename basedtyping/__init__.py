@@ -50,7 +50,7 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
         return result
 
     def _check_generics_reified(self) -> None:
-        if len(self.__parameters__) > 0:
+        if self.__parameters__:
             raise UnboundTypeVarError(
                 f"Type {self.__origin__.__name__} cannot be instantiated; "
                 "generic alias with non-reified generics detected: {self.__parameters__}"
