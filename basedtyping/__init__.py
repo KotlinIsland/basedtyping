@@ -134,8 +134,7 @@ class _ReifiedGenericMetaclass(type, OrigClass):
 
 
 class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
-    """a ``Generic`` where the types of the ``TypeVars`` are checked to be reified (and visible at type-time),
-    ie. can be accessed at runtime
+    """A ``Generic`` where the type parameters are available at runtime and usable in ``isinstance`` and ``issubclass`` checks.
 
     for example:
 
