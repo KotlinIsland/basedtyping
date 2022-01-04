@@ -9,7 +9,7 @@ def issubform(type1: type | UnionType, type2: type | UnionType) -> bool:
 
     >>> issubclass(int | str, object)
     TypeError: issubclass() arg 1 must be a class
-    >>> issubtype(int | str, object)
+    >>> issubform(int | str, object)
     True
     """
     if isinstance(type1, UnionType):
