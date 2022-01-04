@@ -60,6 +60,7 @@ disable = [
     "inherit-non-class",          # handled by mypy, false positive on ReifiedGeneric
     "too-few-public-methods",
     "unused-import",              # false negatives + handled by flake8
+    "duplicate-code",             # https://github.com/PyCQA/pylint/issues/214
 ]
 enable = ["useless-suppression", "deprecated-pragma"]
 
