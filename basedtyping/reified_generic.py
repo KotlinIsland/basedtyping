@@ -23,7 +23,7 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
                 f"Type {self._name} cannot be instantiated; "
                 f"use {self.__origin__.__name__}() instead"
             )
-        self._check_generics_resolved()
+        self._check_generics_reified()
         result = cast(_ReifiedGenericMetaclass, self.__origin__)._actual_call(
             *args, **kwargs
         )
@@ -33,10 +33,11 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
             pass
         return result
 
-    def _check_generics_resolved(self) -> None:
+    def _check_generics_reified(self) -> None:
         if len(self.__parameters__) > 0:
             raise UnboundTypeVarError(
-                f"generic alias with unbound generics detected: {self.__parameters__}"
+                f"Type {self.__origin__.__name__} cannot be instantiated; "
+                "generic alias with non-reified generics detected: {self.__parameters__}"
             )
 
     def _type_vars(self) -> tuple[TypeVar, ...]:
@@ -46,7 +47,7 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
         return cast(tuple[TypeVar, ...], getattr(self.__origin__, "__parameters__"))
 
     def _type_var_check(self, args: tuple[type, ...]) -> bool:
-        self._check_generics_resolved()
+        self._check_generics_reified()
         for parameter, self_arg, subclass_arg in zip(
             self._type_vars(),
             self.__args__,
@@ -69,7 +70,7 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
             subclass.__origin__, self.__origin__
         ):
             return False
-        subclass._check_generics_resolved()
+        subclass._check_generics_reified()
         return self._type_var_check(subclass.__args__)
 
     def __instancecheck__(self, instance: object) -> bool:
