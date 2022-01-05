@@ -191,7 +191,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
         # mypy doesn't check the signature of __class_getitem__ but complains when it doesn't match its signature in another base class
         # this is purely a runtime thing anyway so we can just do this
 
-        def __class_getitem__(cls, item: T) -> type[ReifiedGeneric[T]]:
+        def __class_getitem__(cls, item) -> type[ReifiedGeneric[T]]:
             generic_alias = super().__class_getitem__(item)
             return _ReifiedGenericAlias(
                 generic_alias.__origin__, generic_alias.__args__
