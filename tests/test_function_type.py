@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    # these are just type-time tests, not real life pytest tests. they are only run by mypy
 
     from basedtyping import Function
     from basedtyping.typetime_only import assert_type
