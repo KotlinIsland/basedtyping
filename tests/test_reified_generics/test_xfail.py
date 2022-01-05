@@ -20,7 +20,7 @@ class C1(A[T], B[T2], ReifiedGeneric[tuple[T, T2]]):
     pass
 
 
-class C2(A[T], B[T2], ReifiedGeneric[tuple[T, T2]]):
+class C2(A[T], B[T2], ReifiedGeneric[tuple[T2, T]]):
     pass
 
 
