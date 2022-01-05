@@ -82,12 +82,3 @@ def test_concrete_subclass(
     s = S()
     assert isinstance(s, A[int])  # type: ignore[misc]
     assert not isinstance(s, A[str])  # type: ignore[misc, unreachable]
-
-
-@mark.xfail(reason="not implemented")
-def test_reified_during_init() -> None:
-    class Reified(ReifiedGeneric[T]):
-        def __init__(self) -> None:  # pylint: disable=super-init-not-called
-            assert self.__orig_class__.__args__ == (int,)
-
-    Reified[int]()
