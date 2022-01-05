@@ -85,3 +85,13 @@ def unsupported_concrete_subclass() -> None:
 
         class Sub(Reified[int, str]):
             pass
+
+
+def test_reified_in_init() -> None:
+    class Foo(ReifiedGeneric[T]):
+        # https://github.com/PyCQA/pylint/issues/5637
+        def __init__(self) -> None:  # pylint:disable=super-init-not-called
+            assert self.__orig_class__.__args__ == (int,)
+
+    Foo[int]()
+    assert not hasattr(Foo, "__orig_class__")

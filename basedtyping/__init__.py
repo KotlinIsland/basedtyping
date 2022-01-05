@@ -47,9 +47,13 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
                 f"use {self.__origin__.__name__}() instead"
             )
         self._check_generics_reified()
+        # hack so that the reified generics are available within `__init__`
+        # TODO: better way of doing this instead of modifying the original class and deleting it after
+        self.__origin__.__orig_class__ = self  # type: ignore[attr-defined]
         result = cast(
             _ReifiedGenericMetaclass, type.__call__(self.__origin__, *args, **kwargs)  # type: ignore[misc]
         )
+        delattr(self.__origin__, "__orig_class__")
         result.__orig_class__ = self  # type: ignore[attr-defined]
         return result
 
