@@ -73,4 +73,3 @@ max-line-length = 200
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib"
-
