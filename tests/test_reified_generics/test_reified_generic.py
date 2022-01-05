@@ -19,7 +19,7 @@ class Normal(Generic[T, T2]):
     ...
 
 
-def test_args_and_params() -> None:
+def test_class_args_and_params_class() -> None:
     assert (
         Normal[int, str].__args__  # type: ignore[attr-defined,misc]
         == Reified[int, str].__args__
@@ -27,6 +27,17 @@ def test_args_and_params() -> None:
     assert (
         Normal[int, str].__origin__.__parameters__  # type: ignore[attr-defined,misc]
         == Reified[int, str].__origin__.__parameters__  # type: ignore[attr-defined,misc]
+    )
+
+
+def test_class_args_and_params_instance() -> None:
+    assert (
+        Normal[int, str]().__orig_class__.__args__  # type: ignore[attr-defined,misc]
+        == Reified[int, str]().__orig_class__.__args__
+    )
+    assert (
+        Normal[int, str]().__orig_class__.__origin__.__parameters__  # type: ignore[attr-defined,misc]
+        == Reified[int, str]().__orig_class__.__origin__.__parameters__  # type: ignore[attr-defined,misc]
     )
 
 
