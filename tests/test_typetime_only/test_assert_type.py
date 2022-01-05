@@ -8,4 +8,4 @@ if TYPE_CHECKING:
         assert_type[int](1)
 
     def test_assert_type_fail() -> None:
-        assert_type[int]("")  # type:ignore[arg-type]
+        assert_type[int]("")  # type: ignore[arg-type]

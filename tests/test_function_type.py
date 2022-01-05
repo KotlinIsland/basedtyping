@@ -33,4 +33,4 @@ if TYPE_CHECKING:
 
     def test_class_method_descriptor() -> None:
         # method signature contains `Any`
-        assert_function(dict.fromkeys)  # type:ignore[misc]
+        assert_function(dict.fromkeys)  # type: ignore[misc]

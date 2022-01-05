@@ -1,4 +1,4 @@
-"""the main ``basedtyping`` module. the types/functions defined here can be used at both type-time and at runtime."""
+"""The main ``basedtyping`` module. the types/functions defined here can be used at both type-time and at runtime."""
 from __future__ import annotations
 
 from types import UnionType
@@ -17,15 +17,18 @@ from typing import (
 from basedtyping.runtime_only import OldUnionType
 
 if TYPE_CHECKING:
-    Function = Callable[..., object]  # type:ignore[misc]
-    """any ``Callable``. useful when using mypy with ``disallow-any-explicit`` due to https://github.com/python/mypy/issues/9496
+    Function = Callable[..., object]  # type: ignore[misc]
+    """Any ``Callable``. useful when using mypy with ``disallow-any-explicit``
+    due to https://github.com/python/mypy/issues/9496
 
-    cannot actually be called unless it's narrowed, so it should only really be used as a bound in a ``TypeVar``"""
+    Cannot actually be called unless it's narrowed, so it should only really be used as
+    a bound in a ``TypeVar``.
+    """
 else:
     # for isinstance checks
     Function = Callable
 
-# unlike the generics in other modules, these ones are meant to be imported to save you from the boilerplate
+# Unlike the generics in other modules, these are meant to be imported to save you from the boilerplate
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
@@ -35,8 +38,9 @@ Fn = TypeVar("Fn", bound=Function)
 
 class _ReifiedGenericAlias(_GenericAlias, _root=True):
     def __call__(self, *args: NoReturn, **kwargs: NoReturn) -> object:
-        """copied from `_GenericAlias.__call__` but modified to call `_actual_call` instead of `__call__`,
-        and throw an error if there are any unbound generics"""
+        """Copied from `_GenericAlias.__call__` but modified to call`_actual_call`
+        instead of `__call__`, and throw an error if there are any TypeVars
+        """
         if not self._inst:
             raise TypeError(
                 f"Type {self._name} cannot be instantiated; "
@@ -46,20 +50,21 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
         result = cast(_ReifiedGenericMetaclass, self.__origin__)._actual_call(
             *args, **kwargs
         )
-        result.__orig_class__ = self  # type:ignore[attr-defined]
+        result.__orig_class__ = self  # type: ignore[attr-defined]
         return result
 
     def _check_generics_reified(self) -> None:
         if self.__parameters__:
-            raise MissingTypeParametersError(
-                f"Type {self.__origin__.__name__} cannot be instantiated; "
-                "generic alias with non-reified generics detected: {self.__parameters__}"
+            raise NotReifiedParameterError(
+                f"Type {self.__origin__.__name__} cannot be instantiated; TypeVars "
+                f"cannot be used to instantiate a reified class: {self.__parameters__}"
             )
 
     def _type_vars(self) -> tuple[TypeVar, ...]:
-        """gets a ``tuple`` of all the ``TypeVar``s defined in the `__origin__`.
+        """Returns a ``tuple`` of all the ``TypeVar``s defined in the `__origin__`.
 
-        basically you should always use this instead of ``self.__parameters__``"""
+        Basically you should always use this instead of ``self.__parameters__``.
+        """
         return cast(tuple[TypeVar, ...], getattr(self.__origin__, "__parameters__"))
 
     def _type_var_check(self, args: tuple[type, ...]) -> bool:
@@ -100,47 +105,57 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
 
 class OrigClass(Protocol):
     __args__: tuple[type, ...]
-    """the reified type(s)"""
+    """The reified type(s)"""
     __parameters__: tuple[TypeVar, ...]
-    """any unbound ``TypeVar``s (this should always be empty by the time the ``ReifiedGeneric`` is instantiated)"""
+    """Any unbound ``TypeVar``s (this should always be empty by the time the
+    ``ReifiedGeneric`` is instantiated)
+    """
 
 
 class ReifiedGenericError(TypeError):
     pass
 
 
-class NotReifiedError(ReifiedGenericError):
-    """raised when a ``ReifiedGeneric`` is instanciated without using a generic alias
+class NoParametersError(ReifiedGenericError):
+    """Raised when a ``ReifiedGeneric`` is instantiated without passing type parameters.
 
-    ie. ``foo: Foo[int] = Foo()`` instead of ``foo = Foo[int]()``"""
+    ie: ``foo: Foo[int] = Foo()`` instead of ``foo = Foo[int]()``
+    """
 
 
-class MissingTypeParametersError(ReifiedGenericError):
-    """Raised when a ``ReifiedGeneric`` is instanciated with a non-reified ``TypeVar`` instead of a type parameter
+class NotReifiedParameterError(ReifiedGenericError):
+    """Raised when a ``ReifiedGeneric`` is instantiated with a non-reified ``TypeVar``
+    as a type parameter instead of a concrete type.
 
-    ie. ``Foo[T]()`` instead of ``Foo[int]()``"""
+    ie: ``Foo[T]()`` instead of ``Foo[int]()``
+    """
 
 
 class _ReifiedGenericMetaclass(type, OrigClass):
     def _actual_call(cls, *args: NoReturn, **kwargs: NoReturn) -> object:
-        """the actual  ``__call__`` method for the generic alias's ``__origin__``"""
+        """The actual  ``__call__`` method for the generic alias's ``__origin__``."""
         return cast(object, super().__call__(*args, **kwargs))
 
     def __call__(cls, *args: NoReturn, **kwargs: NoReturn) -> object:
-        """a placeholder ``__call__`` method that only gets called if the ``ReifiedGeneric`` being instanciated isn't a ``_ReifiedGenericAlias``"""
-        raise NotReifiedError(
-            f"cannot instanciate ReifiedGeneric '{cls.__name__}' because its generics were not reified. "
-            "the generics must be explicitly specified in the instanciation such that it can create a generic alias with the reified generics.\n\n"
-            "for example:\n\n"
+        """A placeholder ``__call__`` method that only gets called if the
+        ``ReifiedGeneric`` being instantiated isn't a ``_ReifiedGenericAlias``.
+        """
+        raise NoParametersError(
+            f"Cannot instantiate ReifiedGeneric '{cls.__name__}' because its type "
+            "parameters were not supplied. "
+            "The type parameters must be explicitly specified in the instantiation so "
+            "that the type data can be made available at runtime.\n\n"
+            "For example:\n\n"
             "foo: Foo[int] = Foo()  # wrong\n"
             "foo = Foo[int]()  # correct"
         )
 
 
 class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
-    """A ``Generic`` where the type parameters are available at runtime and usable in ``isinstance`` and ``issubclass`` checks.
+    """A ``Generic`` where the type parameters are available at runtime and is
+    usable in ``isinstance`` and ``issubclass`` checks.
 
-    for example:
+    For example:
 
     >>> class Foo(ReifiedGeneric[T]):
     ...     def create_instance(self) -> T:
@@ -148,22 +163,23 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     ...         return cls()
     ...
     ...  foo: Foo[int] = Foo() # error: generic cannot be reified
-    ...  foo = Foo[int]() # no error, as the generic was reified via the generic alias
+    ...  foo = Foo[int]() # no error, as types have been supplied in a runtime position
 
-    to define multiple generics, use a tuple type:
+    To define multiple generics, use a tuple type:
 
     >>> class Foo(ReifiedGeneric[tuple[T, U]]):
     ...     ...
     ...
     ... foo = Foo[int, str]()
 
-    since the generics are guaranteed to be reified, that means ``isinstance`` and ``issubclass`` checks work as well:
+    Since the type parameters are guaranteed to be reified, that means ``isinstance``
+    and ``issubclass`` checks work as well:
 
-    >>> isinstance(Foo[int, str](), Foo[int, int])  # type:ignore[misc]
+    >>> isinstance(Foo[int, str](), Foo[int, int])  # type: ignore[misc]
     False
 
     note: basedmypy currently doesn't allow generics in ``isinstance`` and ``issubclass`` checks, so for now you have to use
-    ``basedtyping.runtime_checks.is_subclass`` for subclass checks and ``# type:ignore[misc]`` for instance checks. this issue
+    ``basedtyping.issubform`` for subclass checks and ``# type: ignore[misc]`` for instance checks. this issue
     is tracked [here](https://github.com/KotlinIsland/basedmypy/issues/5)
     """
 
@@ -183,19 +199,28 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
 
 
 # TODO: make this work with any "form", not just unions
-def issubform(type1: type | UnionType, type2: type | UnionType) -> bool:
-    """``issubclass`` but works with a union as the first arg (like it does for the second arg)
+#  should be (form: TypeForm, forminfo: TypeForm)
+def issubform(form: type | UnionType, forminfo: type | UnionType) -> bool:
+    """EXPERIMENTAL: Warning, this function currently only supports unions.
+
+    Returns ``True`` if ``form`` is a subform (specialform or subclass) of ``forminfo``.
+
+    Like  ``issubclass`` but supports typeforms (type-time types)
 
     for example:
 
     >>> issubclass(int | str, object)
     TypeError: issubclass() arg 1 must be a class
+
+    >>> issubform(int | str, str)
+    False
+
     >>> issubform(int | str, object)
     True
     """
-    if isinstance(type1, UnionType | OldUnionType):
-        for t in cast(Sequence[type], cast(UnionType, type1).__args__):
-            if not issubclass(t, type2):
+    if isinstance(form, UnionType | OldUnionType):
+        for t in cast(Sequence[type], cast(UnionType, form).__args__):
+            if not issubclass(t, forminfo):
                 return False
         return True
-    return issubclass(type1, type2)
+    return issubclass(form, forminfo)

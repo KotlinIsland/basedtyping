@@ -1,5 +1,8 @@
 [tool.poetry]
-authors = ["DetachHead <detachhead@users.noreply.github.com>"]
+authors = [
+    "DetachHead <detachhead@users.noreply.github.com>",
+    "KotlinIsland <kotlinisland@users.noreply.github.com>",
+]
 description = ""
 name = "basedtyping"
 version = "0.1.0"
@@ -44,6 +47,7 @@ combine_as_imports = true
 
 [tool.black]
 target-version = ["py310"]
+experimental-string-processing = true
 
 [tool.pylint.MASTER]
 fail-on = "I"
