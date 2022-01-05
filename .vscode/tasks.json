@@ -1,0 +1,10 @@
+{
+  "tasks": [
+    {
+      "label": "task1",
+      "type": "shell",
+      "command": "echo",
+      "args": ["${command:python.interpreterPath}"] //outputs the interpreterpath
+    }
+  ]
+}
