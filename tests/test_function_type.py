@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     def test_function_type() -> None:
         def func() -> None:
-            ...
+            pass
 
         assert_function(func)
 

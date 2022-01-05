@@ -8,15 +8,15 @@ T2 = TypeVar("T2")
 
 
 class Reified(ReifiedGeneric[tuple[T, T2]]):
-    ...
+    pass
 
 
 class ReifiedList(ReifiedGeneric[tuple[T]], list[T]):
-    ...
+    pass
 
 
 class Normal(Generic[T, T2]):
-    ...
+    pass
 
 
 def test_class_args_and_params_class() -> None:
@@ -62,3 +62,26 @@ def test_issubclass() -> None:
 def test_reified_generic_without_generic_alias() -> None:
     with raises(NoParametersError):
         Reified()  # pylint:disable=no-value-for-parameter
+
+
+def test_subclass() -> None:
+    class SubReified1(Reified[T, T2]):
+        pass
+
+    class SubReified2(Reified[T, T2], ReifiedGeneric[tuple[T, T2]]):
+        pass
+
+    with raises(NoParametersError):
+        SubReified1()
+    with raises(NoParametersError):
+        SubReified2()
+    s = SubReified2[int, str]()
+    assert isinstance(s, Reified[int, str])  # type: ignore[misc]
+    assert not isinstance(s, Reified[str, int])  # type: ignore[misc]
+
+
+def unsupported_concrete_subclass() -> None:
+    with raises(NotImplementedError):
+
+        class Sub(Reified[int, str]):
+            pass

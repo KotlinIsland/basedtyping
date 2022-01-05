@@ -1,7 +1,7 @@
 """The main ``basedtyping`` module. the types/functions defined here can be used at both type-time and at runtime."""
 from __future__ import annotations
 
-from types import UnionType
+from types import GenericAlias, UnionType
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -37,9 +37,9 @@ Fn = TypeVar("Fn", bound=Function)
 
 
 class _ReifiedGenericAlias(_GenericAlias, _root=True):
-    def __call__(self, *args: NoReturn, **kwargs: NoReturn) -> object:
-        """Copied from `_GenericAlias.__call__` but modified to call`_actual_call`
-        instead of `__call__`, and throw an error if there are any TypeVars
+    def __call__(self, *args: NoReturn, **kwargs: NoReturn) -> _ReifiedGenericMetaclass:
+        """Copied from ``super().__call__`` but modified to call ``type.__call__``
+        instead of ``__origin__.__call__``, and throw an error if there are any TypeVars
         """
         if not self._inst:
             raise TypeError(
@@ -47,10 +47,26 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
                 f"use {self.__origin__.__name__}() instead"
             )
         self._check_generics_reified()
-        result = cast(_ReifiedGenericMetaclass, self.__origin__)._actual_call(
-            *args, **kwargs
+        result = cast(
+            _ReifiedGenericMetaclass, type.__call__(self.__origin__, *args, **kwargs)  # type: ignore[misc]
         )
         result.__orig_class__ = self  # type: ignore[attr-defined]
+        return result
+
+    def __mro_entries__(self, bases: tuple[type, ...]) -> tuple[type, ...]:
+        result = super().__mro_entries__(bases)
+        # fail when subtyping and specifying concrete type parameters
+        if result == (self.__origin__,) and any(  # type: ignore[misc]
+            not isinstance(arg, TypeVar)  # type: ignore[misc]
+            for arg in (
+                self.__args__[0].__args__  # type: ignore[misc]
+                if isinstance(self.__args__[0], GenericAlias | _GenericAlias)  # type: ignore[misc, unreachable]
+                else self.__args__
+            )
+        ):
+            raise NotImplementedError(
+                "Concrete subtyping of ReifiedGenerics is not yet supported"
+            )
         return result
 
     def _check_generics_reified(self) -> None:
@@ -61,11 +77,8 @@ class _ReifiedGenericAlias(_GenericAlias, _root=True):
             )
 
     def _type_vars(self) -> tuple[TypeVar, ...]:
-        """Returns a ``tuple`` of all the ``TypeVar``s defined in the `__origin__`.
-
-        Basically you should always use this instead of ``self.__parameters__``.
-        """
-        return cast(tuple[TypeVar, ...], getattr(self.__origin__, "__parameters__"))
+        """Returns a ``tuple`` of all the type parameters defined in the `__origin__`."""
+        return cast(tuple[TypeVar, ...], self.__origin__.__parameters__)  # type: ignore[attr-defined]
 
     def _type_var_check(self, args: tuple[type, ...]) -> bool:
         self._check_generics_reified()
@@ -132,13 +145,9 @@ class NotReifiedParameterError(ReifiedGenericError):
 
 
 class _ReifiedGenericMetaclass(type, OrigClass):
-    def _actual_call(cls, *args: NoReturn, **kwargs: NoReturn) -> object:
-        """The actual  ``__call__`` method for the generic alias's ``__origin__``."""
-        return cast(object, super().__call__(*args, **kwargs))
-
     def __call__(cls, *args: NoReturn, **kwargs: NoReturn) -> object:
-        """A placeholder ``__call__`` method that only gets called if the
-        ``ReifiedGeneric`` being instantiated isn't a ``_ReifiedGenericAlias``.
+        """A placeholder ``__call__`` method that gets called when the class is
+        instantiated directly, instead of first supplying the type parameters.
         """
         raise NoParametersError(
             f"Cannot instantiate ReifiedGeneric '{cls.__name__}' because its type "
@@ -168,7 +177,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     To define multiple generics, use a tuple type:
 
     >>> class Foo(ReifiedGeneric[tuple[T, U]]):
-    ...     ...
+    ...     pass
     ...
     ... foo = Foo[int, str]()
 
