@@ -74,7 +74,7 @@ def test_subclass() -> None:
     with raises(NoParametersError):
         SubReified1()
     with raises(NoParametersError):
-        SubReified2()
+        SubReified2()  # pylint:disable=no-value-for-parameter
     s = SubReified2[int, str]()
     assert isinstance(s, Reified[int, str])  # type: ignore[misc]
     assert not isinstance(s, Reified[str, int])  # type: ignore[misc]
@@ -83,7 +83,7 @@ def test_subclass() -> None:
 def unsupported_concrete_subclass() -> None:
     with raises(NotImplementedError):
 
-        class Sub(Reified[int, str]):
+        class Sub(Reified[int, str]):  # pylint:disable=unused-variable
             pass
 
 
