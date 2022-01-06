@@ -11,6 +11,7 @@ from typing import (
     Sequence,
     TypeVar,
     _GenericAlias,
+    _SpecialForm,
     cast,
 )
 
@@ -36,8 +37,12 @@ T_cont = TypeVar("T_cont", contravariant=True)
 Fn = TypeVar("Fn", bound=Function)
 
 
+Never = NoReturn
+"""a value that can never exist. this is the narrowest possible form"""
+
+
 class _ReifiedGenericAlias(_GenericAlias, _root=True):
-    def __call__(self, *args: NoReturn, **kwargs: NoReturn) -> _ReifiedGenericMetaclass:
+    def __call__(self, *args: object, **kwargs: object) -> _ReifiedGenericMetaclass:
         """Copied from ``super().__call__`` but modified to call ``type.__call__``
         instead of ``__origin__.__call__``, and throw an error if there are any TypeVars
         """
@@ -149,7 +154,7 @@ class NotReifiedParameterError(ReifiedGenericError):
 
 
 class _ReifiedGenericMetaclass(type, OrigClass):
-    def __call__(cls, *args: NoReturn, **kwargs: NoReturn) -> object:
+    def __call__(cls, *args: object, **kwargs: object) -> object:
         """A placeholder ``__call__`` method that gets called when the class is
         instantiated directly, instead of first supplying the type parameters.
         """
@@ -213,8 +218,10 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
 
 # TODO: make this work with any "form", not just unions
 #  should be (form: TypeForm, forminfo: TypeForm)
-def issubform(form: type | UnionType, forminfo: type | UnionType) -> bool:
-    """EXPERIMENTAL: Warning, this function currently only supports unions.
+def issubform(
+    form: type | UnionType | _SpecialForm, forminfo: type | UnionType | _SpecialForm
+) -> bool:
+    """EXPERIMENTAL: Warning, this function currently only supports unions and ``Never``.
 
     Returns ``True`` if ``form`` is a subform (specialform or subclass) of ``forminfo``.
 
@@ -231,9 +238,14 @@ def issubform(form: type | UnionType, forminfo: type | UnionType) -> bool:
     >>> issubform(int | str, object)
     True
     """
+    # type ignores because issubclass doesn't support _SpecialForm but we do
     if isinstance(form, UnionType | OldUnionType):
         for t in cast(Sequence[type], cast(UnionType, form).__args__):
-            if not issubclass(t, forminfo):
+            if not issubform(t, forminfo):
                 return False
         return True
-    return issubclass(form, forminfo)
+    if form is Never:
+        return True
+    if forminfo is Never:
+        return False
+    return issubclass(form, forminfo)  # type:ignore[arg-type]
