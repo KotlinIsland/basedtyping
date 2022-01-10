@@ -38,7 +38,7 @@ Fn = TypeVar("Fn", bound=Function)
 
 
 Never = NoReturn
-"""a value that can never exist. this is the narrowest possible form"""
+"""A value that can never exist. This is the narrowest possible form."""
 
 
 class _ReifiedGenericAlias(_GenericAlias, _root=True):
@@ -238,7 +238,7 @@ def issubform(
     >>> issubform(int | str, object)
     True
     """
-    # type ignores because issubclass doesn't support _SpecialForm but we do
+    # type ignores because issubclass doesn't support _SpecialForm, but we do
     if isinstance(form, UnionType | OldUnionType):
         for t in cast(Sequence[type], cast(UnionType, form).__args__):
             if not issubform(t, forminfo):
@@ -248,4 +248,4 @@ def issubform(
         return True
     if forminfo is Never:
         return False
-    return issubclass(form, forminfo)  # type:ignore[arg-type]
+    return issubclass(form, forminfo)  # type: ignore[arg-type]

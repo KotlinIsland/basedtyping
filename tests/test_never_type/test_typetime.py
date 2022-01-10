@@ -15,8 +15,19 @@ if TYPE_CHECKING:
         _never: Never
 
     def test_cant_assign_to_never() -> None:
-        _never: Never = 1  # type:ignore[assignment]
+        _never: Never = 1  # type: ignore[assignment]
 
     def test_cant_subtype() -> None:
-        class _A(Never):  # type:ignore[misc]
+        class _A(Never):  # type: ignore[misc]
             ...
+
+    def test_type_never() -> None:
+        """``type[Never]`` is invalid as ``Never`` is not a ``type``.
+
+        Should actually be:
+         ``_t: type[Never]  # type: ignore[type-var]``
+        due to https://github.com/python/mypy/issues/11291
+
+        So current implementation resembles an xfail.
+        """
+        _t: type[Never]

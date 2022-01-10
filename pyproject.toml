@@ -44,7 +44,7 @@ disable = [
     "useless-import-alias",                      # required when using no-implicit-reexport in mypy
     "no-member",                                 # handled by mypy
     "inherit-non-class",                         # handled by mypy, false positive on ReifiedGeneric
-    "too-few-public-methods",
+    "too-few-public-methods",                    # didn't ask + ratio
     "unused-import",                             # false negatives + handled by flake8
     "duplicate-code",                            # https://github.com/PyCQA/pylint/issues/214
     "isinstance-second-argument-not-valid-type", # false positive on Never type, handled by mypy
