@@ -87,15 +87,14 @@ class _ReifiedGenericMetaclass(type):
     in ``ReifiedGeneric.__class_getitem__``"""
 
     _can_do_instance_and_subclass_checks_without_generics: bool
-    """used internally for ``isinstance`` and ``issubclass`` checks, ``True`` when the class can currenty be used in said checks without generics in them"""
+    """Used internally for ``isinstance`` and ``issubclass`` checks, ``True`` when the class can currenty be used in said checks without generics in them"""
 
     def _orig_class(cls) -> _ReifiedGenericMetaclass:
-        """gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from"""
-        return (
-            cls
-            if (result := cls.__bases__[0]) is ReifiedGeneric
-            else result  # type:ignore[return-value]
-        )
+        """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from"""
+        result = cls.__bases__[0]
+        if result is ReifiedGeneric:
+            return cls
+        return result  # type: ignore[return-value]
 
     def _type_var_check(cls, args: tuple[type, ...]) -> bool:
         if not cls._generics_are_reified():
@@ -107,7 +106,7 @@ class _ReifiedGenericMetaclass(type):
             # named __parameters__ when copying to a new class
             cast(
                 tuple[TypeVar, ...],
-                cls._orig_class().__parameters__,  # type:ignore[attr-defined]
+                cls._orig_class().__parameters__,  # type: ignore[attr-defined]
             ),
             cls.__reified_generics__,
             args,
@@ -140,14 +139,15 @@ class _ReifiedGenericMetaclass(type):
             cls._raise_generics_not_reified()
 
     def _is_subclass(cls, subclass: object) -> TypeGuard[_ReifiedGenericMetaclass]:
-        """for ``__instancecheck__`` and ``__subclasscheck__``. checks whether or not the "origin" type (ie. without the generics) is a subclass
-        of this reified generic"""
+        """For ``__instancecheck__`` and ``__subclasscheck__``. checks whether the
+        "origin" type (ie. without the generics) is a subclass of this reified generic
+        """
         # could be any random instance, check it's a reified generic first:
-        return type.__instancecheck__(  # type:ignore[misc]
-            _ReifiedGenericMetaclass,  # type:ignore[misc]
+        return type.__instancecheck__(  # type: ignore[misc]
+            _ReifiedGenericMetaclass,  # type: ignore[misc]
             subclass,
             # then check that the instance is an instance of this particular reified generic:
-        ) and type.__subclasscheck__(  # type:ignore[misc]
+        ) and type.__subclasscheck__(  # type: ignore[misc]
             cls._orig_class(),
             # https://github.com/python/mypy/issues/11671
             cast(  # pylint:disable=protected-access
@@ -160,12 +160,13 @@ class _ReifiedGenericMetaclass(type):
             return False
         if cls._can_do_instance_and_subclass_checks_without_generics:
             return True
-        # if one of the classes don't have any generics, we treat it as the widest possible values for those generics (like star projection)
+        # if one of the classes doesn't have any generics, we treat it as the widest possible values for those generics (like star projection)
         if not hasattr(subclass, "__reified_generics__"):
             # TODO: subclass could be wider, but we don't know for sure because cls could have generics matching its bound
             raise NotImplementedError(
-                f"cannot do subclass check where the first class ({cls}) has generics"
-                f" and the second class ({subclass}) doesn't"
+                "Cannot perform a subclass check where the first class"
+                f" ({cls.__name__!r}) has type parameters and the second class"
+                f" ({subclass.__name__!r}) doesn't"
             )
         if not hasattr(cls, "__reified_generics__"):
             # subclass would be narrower, so we can safely return True
@@ -187,13 +188,13 @@ class _ReifiedGenericMetaclass(type):
         instantiated directly, instead of first supplying the type parameters.
         """
         if (
-            # instanciating a ReifiedGeneric without specifying any TypeVars
+            # instantiating a ReifiedGeneric without specifying any TypeVars
             not hasattr(cls, "_orig_type_vars")
-            # instanciating a subtype of a ReifiedGeneric without specifying any TypeVars
+            # instantiating a subtype of a ReifiedGeneric without specifying any TypeVars
             or cls._orig_type_vars == cls.__type_vars__
         ):
             raise NotReifiedError(
-                f"Cannot instantiate ReifiedGeneric '{cls.__name__}' because its type"
+                f"Cannot instantiate ReifiedGeneric {cls.__name__!r} because its type"
                 " parameters were not supplied. The type parameters must be explicitly"
                 " specified in the instantiation so that the type data can be made"
                 " available at runtime.\n\n"
@@ -203,11 +204,11 @@ class _ReifiedGenericMetaclass(type):
                 "foo = Foo[int]()  # correct"
             )
         cls._check_generics_reified()
-        return super().__call__(*args, **kwargs)  # type:ignore[misc]
+        return super().__call__(*args, **kwargs)  # type: ignore[misc]
 
 
 GenericItems = Union[type, TypeVar, tuple[type | TypeVar, ...]]
-"""the ``items`` argument passed to ``__class_getitem__`` when creating or using a ``Generic``"""
+"""The ``items`` argument passed to ``__class_getitem__`` when creating or using a ``Generic``"""
 
 
 class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
@@ -243,18 +244,18 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     """
 
     __reified_generics__: tuple[type, ...]
-    """should be a generic but cant due to https://github.com/KotlinIsland/basedmypy/issues/142"""
+    """Should be a generic but cant due to https://github.com/KotlinIsland/basedmypy/issues/142"""
     __type_vars__: tuple[TypeVar, ...]
-    """``TypeVar``s that have not yet been reified. so this tuple should always be empty by the time the ``ReifiedGeneric`` is instanciated"""
+    """``TypeVar``\\s that have not yet been reified. so this tuple should always be empty by the time the ``ReifiedGeneric`` is instantiated"""
 
-    @_tp_cache  # type:ignore[name-defined,misc]
-    def __class_getitem__(  # type:ignore[misc]
+    @_tp_cache  # type: ignore[name-defined,misc]
+    def __class_getitem__(  # type: ignore[misc]
         cls, item: GenericItems
     ) -> type[ReifiedGeneric[T]]:
         # when defining the generic (ie. `class Foo(ReifiedGeneric[T]):`) we want the normal behavior
         if cls is ReifiedGeneric:
             # https://github.com/KotlinIsland/basedtypeshed/issues/7
-            return super().__class_getitem__(item)  # type:ignore[misc,no-any-return]
+            return super().__class_getitem__(item)  # type: ignore[misc,no-any-return]
 
         items = item if isinstance(item, tuple) else (item,)
 
@@ -264,7 +265,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             for generic in (
                 cls.__reified_generics__ if hasattr(cls, "__reified_generics__") else ()
             )
-            if not isinstance(generic, TypeVar)  # type:ignore[misc]
+            if not isinstance(generic, TypeVar)  # type: ignore[misc]
         )
 
         # normal generics use __parameters__, we use __type_vars__ because the Generic base class deletes properties
@@ -273,19 +274,18 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             cls.__type_vars__
             if hasattr(cls, "__type_vars__")
             else cast(
-                tuple[TypeVar, ...], cls.__parameters__  # type:ignore[attr-defined]
+                tuple[TypeVar, ...], cls.__parameters__  # type: ignore[attr-defined]
             )
         )
 
         # add any reified generics from the superclass if there is one
         items = superclass_reified_generics + items
-
-        if (expected_length := len(orig_type_vars)) != (
-            actual_length := len(items) - len(superclass_reified_generics)
-        ):
+        expected_length = len(orig_type_vars)
+        actual_length = len(items) - len(superclass_reified_generics)
+        if expected_length != len(items) - len(superclass_reified_generics):
             raise NotEnoughTypeParametersError(
-                f"incorrect number of type parameters specified. {expected_length=},"
-                f" {actual_length=}"
+                "Incorrect number of type parameters specified. expected length:"
+                f" {expected_length}, actual length {actual_length}"
             )
         ReifiedGenericCopy: type[ReifiedGeneric[T]] = type(
             cls.__name__,
@@ -295,10 +295,10 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             # TODO: proper type
             dict[str, object](
                 __reified_generics__=tuple(
-                    _type_convert(t) for t in items  # type:ignore[name-defined,misc]
+                    _type_convert(t) for t in items  # type: ignore[name-defined,misc]
                 ),
                 _orig_type_vars=orig_type_vars,
-                __type_vars__=_collect_type_vars(  # type:ignore[name-defined,misc]
+                __type_vars__=_collect_type_vars(  # type: ignore[name-defined,misc]
                     items, cast(type, TypeVar)
                 ),
             ),

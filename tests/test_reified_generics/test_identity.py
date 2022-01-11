@@ -15,5 +15,5 @@ def test_true() -> None:
 
 def test_false() -> None:
     assert (
-        Reified[int, bool] is not Reified[int, str]  # type:ignore[comparison-overlap]
+        Reified[int, bool] is not Reified[int, str]  # type: ignore[comparison-overlap]
     )
