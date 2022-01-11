@@ -1,7 +1,6 @@
-from typing import Generic, TypeVar
+from typing import TypeVar
 
-from _pytest.fixtures import FixtureRequest
-from pytest import fixture, mark
+from pytest import mark
 
 from basedtyping import ReifiedGeneric, T
 
@@ -35,50 +34,3 @@ def test_isinstance_with_out_of_order_params() -> None:
     assert not isinstance(C2[str, int](), B[str])  # type: ignore[misc]
     assert issubclass(C2[int, str], B[str])  # type: ignore[misc]
     assert not issubclass(C2[str, int], B[str])  # type: ignore[misc]
-
-
-@fixture  # type: ignore[misc]
-def a() -> object:
-    """Defined like this so that it will fail during execution, not during collection"""
-
-    class SubASpecified1(A[int], ReifiedGeneric[int]):
-        pass
-
-    return SubASpecified1
-
-
-@fixture  # type: ignore[misc]
-def b() -> object:
-    """Defined like this so that it will fail during execution, not during collection"""
-
-    class SubASpecified2(A[int]):
-        pass
-
-    return SubASpecified2
-
-
-@fixture(params=["a", "b"])
-def concrete_subclass(request: FixtureRequest) -> object:
-    """Defined like this so that it will fail during execution, not during collection"""
-
-    return request.getfuncargvalue(request.param)  # type: ignore[misc, attr-defined]
-
-
-@mark.xfail(reason="not implemented")
-def test_concrete_subclass(
-    concrete_subclass: type[A[int]],  # pylint: disable=redefined-outer-name
-) -> None:
-    S = concrete_subclass
-    assert S.mro() == [
-        S,
-        A[int],
-        ReifiedGeneric,
-        Generic,
-        object,
-    ]
-    assert issubclass(S, A[int])  # type: ignore[misc]
-    assert not isinstance(S, A[str])  # type: ignore[misc]
-
-    s = S()
-    assert isinstance(s, A[int])  # type: ignore[misc]
-    assert not isinstance(s, A[str])  # type: ignore[misc, unreachable]
