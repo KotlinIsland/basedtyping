@@ -1,6 +1,6 @@
 [[package]]
 name = "astroid"
-version = "2.9.2"
+version = "2.9.3"
 description = "An abstract syntax tree for Python with inference support."
 category = "dev"
 optional = false
@@ -34,7 +34,7 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "basedmypy"
-version = "2.0.0+dev.e5d40fc37d8d6eca75d8784020d82b4574b042b7"
+version = "2.0.0+dev.614569114d7836b2b1c8053232dccf769d8ac80b"
 description = "Based static typing for Python"
 category = "dev"
 optional = false
@@ -49,12 +49,13 @@ typing-extensions = ">=3.10"
 [package.extras]
 dmypy = ["psutil (>=4.0)"]
 python2 = ["typed-ast (>=1.4.0,<2)"]
+reports = ["lxml"]
 
 [package.source]
 type = "git"
 url = "https://github.com/KotlinIsland/basedmypy.git"
-reference = "e5d40fc37d8d6eca75d8784020d82b4574b042b7"
-resolved_reference = "e5d40fc37d8d6eca75d8784020d82b4574b042b7"
+reference = "614569114d7836b2b1c8053232dccf769d8ac80b"
+resolved_reference = "614569114d7836b2b1c8053232dccf769d8ac80b"
 
 [[package]]
 name = "black"
@@ -310,12 +311,12 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "240371a034ae5e82ce19f53f2b3474ec77b9a5f46274ff75e29f1c90d4fc8705"
+content-hash = "7c2a63cd6c7c5e233efeab9710551c57c9246d7cc2cc7a49a05b3c7751433242"
 
 [metadata.files]
 astroid = [
-    {file = "astroid-2.9.2-py3-none-any.whl", hash = "sha256:aa296702f1a5c3102c860de49473aaa90a7f6d221555d5cf2678940a9be32a4e"},
-    {file = "astroid-2.9.2.tar.gz", hash = "sha256:72ace9c3333e274e9248168fc4f3e300da8545af1c303bd69197027f49e2bfff"},
+    {file = "astroid-2.9.3-py3-none-any.whl", hash = "sha256:506daabe5edffb7e696ad82483ad0228245a9742ed7d2d8c9cdb31537decf9f6"},
+    {file = "astroid-2.9.3.tar.gz", hash = "sha256:1efdf4e867d4d8ba4a9f6cf9ce07cd182c4c41de77f23814feb27ca93ca9d877"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.0-py2.py3-none-any.whl", hash = "sha256:6d1784dea7c0c8d4a5172b6c620f40b6e4cbfdf96d783691f2e1302a7b88e197"},
