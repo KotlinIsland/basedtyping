@@ -20,7 +20,6 @@ class Normal(Generic[T, T2]):
     pass
 
 
-no_parameters_error_match = "Cannot instantiate ReifiedGeneric "
 not_reified_parameter_error_match = "TypeVars cannot be used"
 
 
@@ -58,24 +57,8 @@ def test_issubclass() -> None:
 
 
 def test_reified_generic_without_generic_alias() -> None:
-    with raises(NotReifiedError, match=no_parameters_error_match):
+    with raises(NotReifiedError, match="Cannot instantiate ReifiedGeneric "):
         Reified()
-
-
-def test_subclass() -> None:
-    class SubReified1(Reified[T, T2]):
-        pass
-
-    class SubReified2(Reified[T, T2], ReifiedGeneric[tuple[T, T2]]):
-        pass
-
-    with raises(NotReifiedError, match=no_parameters_error_match):
-        SubReified1()
-    with raises(NotReifiedError, match=no_parameters_error_match):
-        SubReified2()
-    s = SubReified2[int, str]()
-    assert isinstance(s, Reified[int, str])  # type: ignore[misc]
-    assert not isinstance(s, Reified[str, int])  # type: ignore[misc]
 
 
 def unsupported_concrete_subclass() -> None:
