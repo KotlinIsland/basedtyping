@@ -199,10 +199,22 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     def __class_getitem__(  # type:ignore[misc]
         cls, item: GenericItems
     ) -> type[ReifiedGeneric[T]]:
+        # when defining the generic (ie. `class Foo(ReifiedGeneric[T]):`) we want the normal behavior
         if cls is ReifiedGeneric:
             # https://github.com/KotlinIsland/basedtypeshed/issues/7
             return super().__class_getitem__(item)  # type:ignore[misc,no-any-return]
+
         items = item if isinstance(item, tuple) else (item,)
+
+        # if we're subtyping a class that already has reified generics:
+        superclass_reified_generics = tuple(
+            generic
+            for generic in (
+                cls.__reified_generics__ if hasattr(cls, "__reified_generics__") else ()
+            )
+            if not isinstance(generic, TypeVar)  # type:ignore[misc]
+        )
+
         # normal generics use __parameters__, we use __type_vars__ because the Generic base class deletes properties
         # named __parameters__ when copying to a new class
         orig_type_vars = (
@@ -212,7 +224,13 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
                 tuple[TypeVar, ...], cls.__parameters__  # type:ignore[attr-defined]
             )
         )
-        if (expected_length := len(orig_type_vars)) != (actual_length := len(items)):
+
+        # add any reified generics from the superclass if there is one
+        items = superclass_reified_generics + items
+
+        if (expected_length := len(orig_type_vars)) != (
+            actual_length := len(items) - len(superclass_reified_generics)
+        ):
             raise NotEnoughTypeParametersError(
                 f"incorrect number of type parameters specified. {expected_length=},"
                 f" {actual_length=}"
