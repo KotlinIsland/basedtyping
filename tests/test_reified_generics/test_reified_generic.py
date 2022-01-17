@@ -50,13 +50,6 @@ def test_reified_generic_without_generic_alias() -> None:
         Reified()
 
 
-def unsupported_concrete_subclass() -> None:
-    with raises(NotImplementedError):
-
-        class Sub(Reified[int, str]):  # pylint:disable=unused-variable
-            pass
-
-
 def test_reified_in_init() -> None:
     class Foo(ReifiedGeneric[T]):
         def __init__(self) -> None:
