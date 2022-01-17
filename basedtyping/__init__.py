@@ -70,10 +70,13 @@ class NotEnoughTypeParametersError(ReifiedGenericError):
 
 class _ReifiedGenericMetaclass(type):
     # these should really only be on the class not the metaclass, but since it needs to be accessible from both instances and the class itself, its duplicated here
+
     __reified_generics__: tuple[type, ...]
     """should be a generic but cant due to https://github.com/python/mypy/issues/11672"""
+
     __type_vars__: tuple[TypeVar, ...]
     """``TypeVar``s that have not yet been reified. so this tuple should always be empty by the time the ``ReifiedGeneric`` is instanciated"""
+
     _orig_type_vars: tuple[TypeVar, ...]
     """used internally to check the ``__type_vars__`` on the current ``ReifiedGeneric`` against the original one it was copied from
     in ``ReifiedGeneric.__class_getitem__``"""
@@ -275,8 +278,8 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
         ReifiedGenericCopy: type[ReifiedGeneric[T]] = type(
             cls.__name__,
             (
-                cls,
-            ),  # make the copied class extend the original so normal instance checks work
+                cls,  # make the copied class extend the original so normal instance checks work
+            ),
             dict[str, GenericItems](
                 __reified_generics__=items,
                 _orig_type_vars=orig_type_vars,
