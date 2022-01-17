@@ -45,17 +45,6 @@ def test_reified_list() -> None:
     assert not it.__type_vars__
 
 
-# https://github.com/KotlinIsland/basedmypy/issues/5
-def test_isinstance() -> None:
-    assert isinstance(Reified[int, str](), Reified[int, str])  # type: ignore[misc]
-    assert not isinstance(Reified[int, str](), Reified[int, int])  # type: ignore[misc]
-
-
-def test_issubclass() -> None:
-    assert issubclass(Reified[int, str], Reified[int, str])  # type: ignore[misc]
-    assert not issubclass(Reified[int, str], Reified[int, int])  # type: ignore[misc]
-
-
 def test_reified_generic_without_generic_alias() -> None:
     with raises(NotReifiedError, match="Cannot instantiate ReifiedGeneric "):
         Reified()
