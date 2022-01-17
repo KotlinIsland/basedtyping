@@ -14,7 +14,7 @@ python = "^3.10"
 black = "^21.12b0"
 flake8 = "^4.0.1"
 # https://github.com/KotlinIsland/basedmypy/pull/131
-basedmypy = { git = "https://github.com/KotlinIsland/basedmypy.git", rev = "614569114d7836b2b1c8053232dccf769d8ac80b" }
+basedmypy = "^1.2.1"
 pylint = "^2.11.2"
 pytest = "^7.0.0rc1"
 isort = "^5.10.1"

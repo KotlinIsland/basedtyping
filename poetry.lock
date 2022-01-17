@@ -34,12 +34,11 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "basedmypy"
-version = "2.0.0+dev.614569114d7836b2b1c8053232dccf769d8ac80b"
+version = "1.2.2"
 description = "Based static typing for Python"
 category = "dev"
 optional = false
 python-versions = ">=3.6"
-develop = false
 
 [package.dependencies]
 mypy-extensions = ">=0.4.3"
@@ -50,12 +49,6 @@ typing-extensions = ">=3.10"
 dmypy = ["psutil (>=4.0)"]
 python2 = ["typed-ast (>=1.4.0,<2)"]
 reports = ["lxml"]
-
-[package.source]
-type = "git"
-url = "https://github.com/KotlinIsland/basedmypy.git"
-reference = "614569114d7836b2b1c8053232dccf769d8ac80b"
-resolved_reference = "614569114d7836b2b1c8053232dccf769d8ac80b"
 
 [[package]]
 name = "black"
@@ -311,7 +304,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "7c2a63cd6c7c5e233efeab9710551c57c9246d7cc2cc7a49a05b3c7751433242"
+content-hash = "7344694b729615445f190cfcc31d91c0d1eb82a1911bf83d81a65769702a2436"
 
 [metadata.files]
 astroid = [
@@ -326,7 +319,10 @@ attrs = [
     {file = "attrs-21.4.0-py2.py3-none-any.whl", hash = "sha256:2d27e3784d7a565d36ab851fe94887c5eccd6a463168875832a1be79c82828b4"},
     {file = "attrs-21.4.0.tar.gz", hash = "sha256:626ba8234211db98e869df76230a137c4c40a12d72445c45d5f5b716f076e2fd"},
 ]
-basedmypy = []
+basedmypy = [
+    {file = "basedmypy-1.2.2-py3-none-any.whl", hash = "sha256:b4998ba9cd491d1d1a1d9c78439a58765242f91d82ccf8c96d0dea419d7afe16"},
+    {file = "basedmypy-1.2.2.tar.gz", hash = "sha256:0a1c13ca39f4ede9e4b802be81f48bbe50dd255def30e13fd5855b0e6bf005b5"},
+]
 black = [
     {file = "black-21.12b0-py3-none-any.whl", hash = "sha256:a615e69ae185e08fdd73e4715e260e2479c861b5740057fde6e8b4e3b7dd589f"},
     {file = "black-21.12b0.tar.gz", hash = "sha256:77b80f693a569e2e527958459634f18df9b0ba2625ba4e0c2d5da5be42e6f2b3"},
