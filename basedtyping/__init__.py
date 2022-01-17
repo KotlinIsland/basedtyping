@@ -86,6 +86,9 @@ class _ReifiedGenericMetaclass(type):
     """used internally to check the ``__type_vars__`` on the current ``ReifiedGeneric`` against the original one it was copied from
     in ``ReifiedGeneric.__class_getitem__``"""
 
+    _can_do_instance_and_subclass_checks_without_generics: bool
+    """used internally for ``isinstance`` and ``issubclass`` checks, ``True`` when the class can currenty be used in said checks without generics in them"""
+
     def _orig_class(cls) -> _ReifiedGenericMetaclass:
         """gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from"""
         return (
@@ -155,6 +158,8 @@ class _ReifiedGenericMetaclass(type):
     def __subclasscheck__(cls, subclass: object) -> bool:
         if not cls._is_subclass(subclass):
             return False
+        if cls._can_do_instance_and_subclass_checks_without_generics:
+            return True
         # if one of the classes don't have any generics, we treat it as the widest possible values for those generics (like star projection)
         if not hasattr(subclass, "__reified_generics__"):
             # TODO: subclass could be wider, but we don't know for sure because cls could have generics matching its bound
@@ -171,6 +176,8 @@ class _ReifiedGenericMetaclass(type):
     def __instancecheck__(cls, instance: object) -> bool:
         if not cls._is_subclass(type(instance)):
             return False
+        if cls._can_do_instance_and_subclass_checks_without_generics:
+            return True
         return cls._type_var_check(
             cast(ReifiedGeneric[object], instance).__reified_generics__
         )
@@ -285,19 +292,24 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             (
                 cls,  # make the copied class extend the original so normal instance checks work
             ),
-            dict[str, GenericItems](
+            # TODO: proper type
+            dict[str, object](
                 __reified_generics__=items,
                 _orig_type_vars=orig_type_vars,
+                __type_vars__=_collect_type_vars(  # type:ignore[name-defined,misc]
+                    items, cast(type, TypeVar)
+                ),
             ),
         )
-        # for some reason setting __parameters__ in the dict above doesn't work and it gets set to an empty tuple
-        # so set it here instead
-        ReifiedGenericCopy.__type_vars__ = (
-            _collect_type_vars(  # type:ignore[name-defined]
-                items, cast(type, TypeVar)
-            )
+        # can't set it in the dict above otherwise __init_subclass__ overwrites it
+        ReifiedGenericCopy._can_do_instance_and_subclass_checks_without_generics = (  # pylint:disable=protected-access
+            False
         )
         return ReifiedGenericCopy
+
+    def __init_subclass__(cls) -> None:  # pylint:disable=arguments-differ
+        cls._can_do_instance_and_subclass_checks_without_generics = True
+        super().__init_subclass__()
 
 
 # TODO: make this work with any "form", not just unions

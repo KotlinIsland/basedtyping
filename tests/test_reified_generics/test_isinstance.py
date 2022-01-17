@@ -52,3 +52,10 @@ def test_without_generics_true() -> None:
 
 def test_without_generics_false() -> None:
     assert not isinstance(Reified[int, str](), Reified2)
+
+
+def test_without_generics_one_specified() -> None:
+    class SubReified(Reified[int, T2]):
+        pass
+
+    assert isinstance(SubReified[str](), SubReified)

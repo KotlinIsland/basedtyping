@@ -11,10 +11,6 @@ class Reified(ReifiedGeneric[tuple[T, T2]]):
     pass
 
 
-class SubReified(Reified[T, T2]):
-    pass
-
-
 # https://github.com/KotlinIsland/basedmypy/issues/5
 
 
@@ -40,6 +36,9 @@ def test_without_generics_second_arg() -> None:
 
 
 def test_without_generics_both() -> None:
+    class SubReified(Reified[T, T2]):
+        pass
+
     assert issubclass(SubReified, Reified)
     assert not issubclass(Reified, SubReified)
 
@@ -53,3 +52,10 @@ def test_without_generics_same_as_bound() -> None:
 
     assert issubclass(Foo, Foo[int | str])  # type: ignore[misc]
     assert issubclass(Foo[int | str], Foo)
+
+
+def test_without_generics_one_specified() -> None:
+    class SubReified(Reified[int, T2]):
+        pass
+
+    assert issubclass(SubReified[str], SubReified)
