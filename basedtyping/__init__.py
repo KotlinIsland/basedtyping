@@ -2,7 +2,18 @@
 from __future__ import annotations
 
 from types import UnionType
-from typing import TYPE_CHECKING, Callable, Generic, Sequence, TypeVar, Union, cast, _SpecialForm
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Generic,
+    NoReturn,
+    Sequence,
+    TypeGuard,
+    TypeVar,
+    Union,
+    _SpecialForm,
+    cast,
+)
 
 from basedtyping.runtime_only import OldUnionType
 
@@ -74,10 +85,17 @@ class _ReifiedGenericMetaclass(type):
 
     def _orig_class(cls) -> _ReifiedGenericMetaclass:
         """gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from"""
-        return cls.__bases__[0]  # type:ignore[return-value]
+        return (
+            cls
+            if (result := cls.__bases__[0]) is ReifiedGeneric
+            else result  # type:ignore[return-value]
+        )
 
     def _type_var_check(cls, args: tuple[type, ...]) -> bool:
-        cls._check_generics_reified()
+        if not cls._generics_are_reified():
+            if cls._has_non_reified_type_vars():
+                cls._raise_generics_not_reified()
+            return True
         for parameter, self_arg, subclass_arg in zip(
             # normal generics use __parameters__, we use __type_vars__ because the Generic base class deletes properties
             # named __parameters__ when copying to a new class
@@ -99,32 +117,56 @@ class _ReifiedGenericMetaclass(type):
                 return False
         return True
 
-    def _check_generics_reified(cls) -> None:
-        if cls.__type_vars__:
-            raise NotReifiedError(
-                f"Type {cls.__name__} cannot be instantiated; TypeVars cannot be used"
-                f" to instantiate a reified class: {cls._orig_type_vars}"
-            )
+    def _generics_are_reified(cls) -> bool:
+        return hasattr(cls, "__type_vars__") and not bool(cls.__type_vars__)
 
-    def __subclasscheck__(cls, obj: object) -> bool:
-        # could be any random class, check it first
-        # first do a normal instance check, return false if the origin isn't the same
-        # https://github.com/KotlinIsland/basedtypeshed/issues/7
-        if not type.__instancecheck__(  # type:ignore[misc]
+    def _has_non_reified_type_vars(cls) -> bool:
+        return hasattr(cls, "__type_vars__") and bool(cls.__type_vars__)
+
+    def _raise_generics_not_reified(cls) -> NoReturn:
+        raise NotReifiedError(
+            f"Type {cls.__name__} cannot be instantiated; TypeVars cannot be used"
+            f" to instantiate a reified class: {cls._orig_type_vars}"
+        )
+
+    def _check_generics_reified(cls) -> None:
+        if not cls._generics_are_reified() or cls._has_non_reified_type_vars():
+            cls._raise_generics_not_reified()
+
+    def _is_subclass(cls, subclass: object) -> TypeGuard[_ReifiedGenericMetaclass]:
+        """for ``__instancecheck__`` and ``__subclasscheck__``. checks whether or not the "origin" type (ie. without the generics) is a subclass
+        of this reified generic"""
+        # could be any random instance, check it's a reified generic first:
+        return type.__instancecheck__(  # type:ignore[misc]
             _ReifiedGenericMetaclass,  # type:ignore[misc]
+            subclass,
+            # then check that the instance is an instance of this particular reified generic:
+        ) and type.__subclasscheck__(  # type:ignore[misc]
             cls._orig_class(),
-        ):
+            # https://github.com/python/mypy/issues/11671
+            cast(  # pylint:disable=protected-access
+                _ReifiedGenericMetaclass, subclass
+            )._orig_class(),
+        )
+
+    def __subclasscheck__(cls, subclass: object) -> bool:
+        if not cls._is_subclass(subclass):
             return False
-        subclass = cast(_ReifiedGenericMetaclass, obj)
+        # if one of the classes don't have any generics, we treat it as the widest possible values for those generics (like star projection)
+        if not hasattr(subclass, "__reified_generics__"):
+            # TODO: subclass could be wider, but we don't know for sure because cls could have generics matching its bound
+            raise NotImplementedError(
+                f"cannot do subclass check where the first class ({cls}) has generics"
+                f" and the second class ({subclass}) doesn't"
+            )
+        if not hasattr(cls, "__reified_generics__"):
+            # subclass would be narrower, so we can safely return True
+            return True
         subclass._check_generics_reified()
         return cls._type_var_check(subclass.__reified_generics__)
 
     def __instancecheck__(cls, instance: object) -> bool:
-        # could be any random instance, check it first
-        # https://github.com/KotlinIsland/basedtypeshed/issues/7
-        if not type.__instancecheck__(  # type:ignore[misc]
-            cls._orig_class(), instance
-        ):
+        if not cls._is_subclass(type(instance)):
             return False
         return cls._type_var_check(
             cast(ReifiedGeneric[object], instance).__reified_generics__
