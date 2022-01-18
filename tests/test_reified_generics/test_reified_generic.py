@@ -73,3 +73,7 @@ def test_concrete_subclass() -> None:
     s = SubASpecified()
     assert isinstance(s, A[int])  # type: ignore[misc]
     assert not isinstance(s, A[str])  # type: ignore[misc]
+
+
+def test_none_type() -> None:
+    assert Reified[None, None].__reified_generics__ == (NoneType, NoneType)
