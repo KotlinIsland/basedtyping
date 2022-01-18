@@ -18,7 +18,7 @@ from basedtyping.runtime_only import OldUnionType
 
 if not TYPE_CHECKING:
     # TODO: remove the TYPE_CHECKING block once these are typed in basedtypeshed
-    from typing import _collect_type_vars, _tp_cache
+    from typing import _collect_type_vars, _tp_cache, _type_convert
 
 if TYPE_CHECKING:
     Function = Callable[..., object]  # type: ignore[misc]
@@ -289,7 +289,9 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             ),
             # TODO: proper type
             dict[str, object](
-                __reified_generics__=items,
+                __reified_generics__=tuple(
+                    _type_convert(t) for t in items  # type:ignore[name-defined,misc]
+                ),
                 _orig_type_vars=orig_type_vars,
                 __type_vars__=_collect_type_vars(  # type:ignore[name-defined,misc]
                     items, cast(type, TypeVar)
