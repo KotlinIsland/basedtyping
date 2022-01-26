@@ -13,8 +13,7 @@ python = "^3.10"
 [tool.poetry.dev-dependencies]
 black = "^21.12b0"
 flake8 = "^4.0.1"
-# https://github.com/KotlinIsland/basedmypy/pull/131
-basedmypy = { git = "https://github.com/KotlinIsland/basedmypy.git", rev = "e5d40fc37d8d6eca75d8784020d82b4574b042b7" }
+basedmypy = "^1.2.2"
 pylint = "^2.11.2"
 pytest = "^7.0.0rc1"
 isort = "^5.10.1"
