@@ -2,7 +2,7 @@ from typing import TypeVar
 
 from pytest import mark
 
-from basedtyping import ReifiedGeneric, T
+from basedtyping import ReifiedGeneric, T, T_co
 
 T2 = TypeVar("T2")
 
@@ -27,8 +27,16 @@ def test_wrong_class_same_generics() -> None:
 
 
 @mark.xfail(reason="not implemented")
-def test_without_generics_first_arg() -> None:
+def test_without_generics_first_arg_false() -> None:
     assert not issubclass(Reified, Reified[int, str])  # type: ignore[misc]
+
+
+@mark.xfail(reason="not implemented")
+def test_without_generics_first_arg_true() -> None:
+    class Foo(ReifiedGeneric[T_co]):
+        pass
+
+    assert not issubclass(Foo, Foo[object])  # type: ignore[misc]
 
 
 def test_without_generics_second_arg() -> None:
