@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/python-project.iml" filepath="$PROJECT_DIR$/.idea/python-project.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/basedtyping.iml" filepath="$PROJECT_DIR$/.idea/basedtyping.iml" />
     </modules>
   </component>
 </project>
