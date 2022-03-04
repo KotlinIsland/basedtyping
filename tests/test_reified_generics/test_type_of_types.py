@@ -18,11 +18,11 @@ if TYPE_CHECKING:
     def test_instance() -> None:
         """may be possible once https://github.com/KotlinIsland/basedmypy/issues/24 is resolved"""
         assert_type[tuple[type[int], type[str]]](
-            Reified[int, str]().__orig_class__.__args__  # type: ignore[arg-type]
+            Reified[int, str]().__reified_generics__  # type: ignore[arg-type]
         )
 
     def from_class() -> None:
         """may be possible once https://github.com/python/mypy/issues/11672 is resolved"""
         assert_type[tuple[type[int], type[str]]](
-            Reified[int, str].__args__  # type: ignore[arg-type]
+            Reified[int, str].__reified_generics__  # type: ignore[arg-type]
         )
