@@ -25,11 +25,11 @@ not_reified_parameter_error_match = "TypeVars cannot be used"
 
 def test_class_args_and_params_class() -> None:
     assert (
-        Normal[int, str].__args__  # type: ignore[attr-defined,misc]
+        Normal[int, str].__args__  # type: ignore[attr-defined,dynamic]
         == Reified[int, str].__reified_generics__
     )
     assert (
-        Normal[int, str].__parameters__  # type: ignore[attr-defined,misc]
+        Normal[int, str].__parameters__  # type: ignore[attr-defined,dynamic]
         == Reified[int, str].__type_vars__
     )
 

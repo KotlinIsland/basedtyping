@@ -22,7 +22,7 @@ if not TYPE_CHECKING:
     from typing import _collect_type_vars, _tp_cache, _type_convert
 
 if TYPE_CHECKING:
-    Function = Callable[..., object]  # type: ignore[misc]
+    Function = Callable[..., object]  # type: ignore[dynamic]
     """Any ``Callable``. useful when using mypy with ``disallow-any-explicit``
     due to https://github.com/python/mypy/issues/9496
 
@@ -143,11 +143,11 @@ class _ReifiedGenericMetaclass(type):
         "origin" type (ie. without the generics) is a subclass of this reified generic
         """
         # could be any random instance, check it's a reified generic first:
-        return type.__instancecheck__(  # type: ignore[misc]
-            _ReifiedGenericMetaclass,  # type: ignore[misc]
+        return type.__instancecheck__(  # type: ignore[dynamic]
+            _ReifiedGenericMetaclass,  # type: ignore[dynamic]
             subclass,
             # then check that the instance is an instance of this particular reified generic:
-        ) and type.__subclasscheck__(  # type: ignore[misc]
+        ) and type.__subclasscheck__(  # type: ignore[dynamic]
             cls._orig_class(),
             # https://github.com/python/mypy/issues/11671
             cast(  # pylint:disable=protected-access
@@ -204,7 +204,7 @@ class _ReifiedGenericMetaclass(type):
                 "foo = Foo[int]()  # correct"
             )
         cls._check_generics_reified()
-        return super().__call__(*args, **kwargs)  # type: ignore[misc]
+        return super().__call__(*args, **kwargs)  # type: ignore[dynamic]
 
 
 GenericItems = Union[type, TypeVar, tuple[type | TypeVar, ...]]
@@ -248,14 +248,14 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     __type_vars__: tuple[TypeVar, ...]
     """``TypeVar``\\s that have not yet been reified. so this tuple should always be empty by the time the ``ReifiedGeneric`` is instantiated"""
 
-    @_tp_cache  # type: ignore[name-defined,misc]
-    def __class_getitem__(  # type: ignore[misc]
+    @_tp_cache  # type: ignore[name-defined,dynamic,misc]
+    def __class_getitem__(  # type: ignore[dynamic]
         cls, item: GenericItems
     ) -> type[ReifiedGeneric[T]]:
         # when defining the generic (ie. `class Foo(ReifiedGeneric[T]):`) we want the normal behavior
         if cls is ReifiedGeneric:
             # https://github.com/KotlinIsland/basedtypeshed/issues/7
-            return super().__class_getitem__(item)  # type: ignore[misc,no-any-return]
+            return super().__class_getitem__(item)  # type: ignore[dynamic,misc,no-any-return]
 
         items = item if isinstance(item, tuple) else (item,)
 
@@ -265,7 +265,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             for generic in (
                 cls.__reified_generics__ if hasattr(cls, "__reified_generics__") else ()
             )
-            if not isinstance(generic, TypeVar)  # type: ignore[misc]
+            if not isinstance(generic, TypeVar)  # type: ignore[dynamic]
         )
 
         # normal generics use __parameters__, we use __type_vars__ because the Generic base class deletes properties
@@ -295,10 +295,10 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             # TODO: proper type
             dict[str, object](
                 __reified_generics__=tuple(
-                    _type_convert(t) for t in items  # type: ignore[name-defined,misc]
+                    _type_convert(t) for t in items  # type: ignore[name-defined,dynamic]
                 ),
                 _orig_type_vars=orig_type_vars,
-                __type_vars__=_collect_type_vars(  # type: ignore[name-defined,misc]
+                __type_vars__=_collect_type_vars(  # type: ignore[name-defined,dynamic]
                     items, cast(type, TypeVar)
                 ),
             ),
