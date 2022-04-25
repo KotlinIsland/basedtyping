@@ -13,4 +13,4 @@ class Reified2(ReifiedGeneric[tuple[T, U]]):
 
 def test_not_enough_type_params() -> None:
     with raises(NotEnoughTypeParametersError):
-        Reified2[int]()  # type: ignore[dynamic,misc]
+        Reified2[int]()  # type: ignore[no-any-expr,misc]

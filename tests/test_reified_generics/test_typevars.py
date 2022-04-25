@@ -8,7 +8,7 @@ class Reified(ReifiedGeneric[T]):
     pass
 
 
-@fixture  # type: ignore[dynamic]
+@fixture  # type: ignore[no-any-expr]
 def _value() -> int:
     return 1
 
