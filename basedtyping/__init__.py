@@ -4,6 +4,7 @@ from __future__ import annotations
 from types import UnionType
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Generic,
     NoReturn,
@@ -15,6 +16,7 @@ from typing import (
     cast,
 )
 
+from typing_extensions import TypeAlias
 
 from basedtyping.runtime_only import OldUnionType
 
@@ -348,3 +350,18 @@ def issubform(
     if forminfo is Never:
         return False
     return issubclass(form, forminfo)  # type: ignore[arg-type]
+
+
+if TYPE_CHECKING:
+    # We pretend that it's an alias to Any so that it's slightly more compatible with
+    #  other tools, basedmypy will still utilize the SpecialForm over the TypeAlias.
+    Untyped: TypeAlias = Any  # type: ignore[no-any-explicit]
+else:
+
+    @_SpecialForm  # `_SpecialForm`s init isn't typed
+    def Untyped(self: _SpecialForm, parameters: object) -> NoReturn:
+        """Special type indicating that something isn't typed.
+
+        This is more specialized than ``Any`` and can help with gradually typing modules.
+        """
+        raise TypeError(f"{self} is not subscriptable")
