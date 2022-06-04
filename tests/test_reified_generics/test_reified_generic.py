@@ -1,5 +1,4 @@
-from types import NoneType
-from typing import Generic, TypeVar
+from typing import Generic, List, Tuple, TypeVar
 
 from pytest import raises
 
@@ -7,12 +6,14 @@ from basedtyping import NotReifiedError, ReifiedGeneric, T
 
 T2 = TypeVar("T2")
 
+NoneType = type(None)
 
-class Reified(ReifiedGeneric[tuple[T, T2]]):
+
+class Reified(ReifiedGeneric[Tuple[T, T2]]):
     pass
 
 
-class ReifiedList(ReifiedGeneric[tuple[T]], list[T]):
+class ReifiedList(ReifiedGeneric[Tuple[T]], List[T]):
     pass
 
 

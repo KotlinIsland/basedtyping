@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple, Type
 
 if TYPE_CHECKING:
     # these are just type-time tests, not real life pytest tests. they are only run by mypy
@@ -10,19 +10,19 @@ if TYPE_CHECKING:
 
     U = TypeVar("U")
 
-    class Reified(ReifiedGeneric[tuple[T, U]]):
+    class Reified(ReifiedGeneric[Tuple[T, U]]):
         pass
 
     from basedtyping.typetime_only import assert_type
 
     def test_instance() -> None:
         """may be possible once https://github.com/KotlinIsland/basedmypy/issues/24 is resolved"""
-        assert_type[tuple[type[int], type[str]]](
+        assert_type[Tuple[Type[int], Type[str]]](
             Reified[int, str]().__reified_generics__  # type: ignore[arg-type]
         )
 
     def from_class() -> None:
         """may be possible once https://github.com/python/mypy/issues/11672 is resolved"""
-        assert_type[tuple[type[int], type[str]]](
+        assert_type[Tuple[Type[int], Type[str]]](
             Reified[int, str].__reified_generics__  # type: ignore[arg-type]
         )

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, NoReturn, cast
+from typing import TYPE_CHECKING, NoReturn, Type, cast
 
 if TYPE_CHECKING:
     # these are just type-time tests, not real life pytest tests. they are only run by mypy
@@ -30,4 +30,4 @@ if TYPE_CHECKING:
 
         So current implementation resembles an xfail.
         """
-        _t: type[Never]
+        _t: Type[Never]

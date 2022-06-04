@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Tuple, TypeVar, Union
 
 from pytest import mark
 
@@ -7,7 +7,7 @@ from basedtyping import ReifiedGeneric, T, T_co
 T2 = TypeVar("T2")
 
 
-class Reified(ReifiedGeneric[tuple[T, T2]]):
+class Reified(ReifiedGeneric[Tuple[T, T2]]):
     pass
 
 
@@ -20,7 +20,7 @@ def test_issubclass() -> None:
 
 
 def test_wrong_class_same_generics() -> None:
-    class Reified2(ReifiedGeneric[tuple[T, T2]]):
+    class Reified2(ReifiedGeneric[Tuple[T, T2]]):
         pass
 
     assert not issubclass(Reified2[int, int], Reified[int, int])  # type: ignore[misc]
@@ -53,13 +53,13 @@ def test_without_generics_both() -> None:
 
 @mark.xfail(reason="not implemented")
 def test_without_generics_same_as_bound() -> None:
-    _T = TypeVar("_T", bound=int | str)
+    _T = TypeVar("_T", bound=Union[int, str])
 
     class Foo(ReifiedGeneric[T]):
         pass
 
-    assert issubclass(Foo, Foo[int | str])  # type: ignore[misc]
-    assert issubclass(Foo[int | str], Foo)
+    assert issubclass(Foo, Foo[Union[int, str]])  # type: ignore[misc]
+    assert issubclass(Foo[Union[int, str]], Foo)
 
 
 def test_without_generics_one_specified() -> None:

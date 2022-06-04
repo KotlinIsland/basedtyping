@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import List, Tuple, TypeVar
 
 from pytest import raises
 
@@ -9,11 +9,11 @@ T2 = TypeVar("T2")
 no_parameters_error_match = "Cannot instantiate ReifiedGeneric "
 
 
-class Reified(ReifiedGeneric[tuple[T, T2]]):
+class Reified(ReifiedGeneric[Tuple[T, T2]]):
     pass
 
 
-class ReifiedList(ReifiedGeneric[tuple[T]], list[T]):
+class ReifiedList(ReifiedGeneric[Tuple[T]], List[T]):
     pass
 
 
@@ -21,7 +21,7 @@ def test_subclass() -> None:
     class SubReified1(Reified[T, T2]):
         pass
 
-    class SubReified2(Reified[T, T2], ReifiedGeneric[tuple[T, T2]]):
+    class SubReified2(Reified[T, T2], ReifiedGeneric[Tuple[T, T2]]):
         pass
 
     with raises(NotReifiedError, match=no_parameters_error_match):

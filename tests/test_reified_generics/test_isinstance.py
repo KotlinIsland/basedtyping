@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Tuple, TypeVar
 
 from pytest import mark
 
@@ -7,11 +7,11 @@ from basedtyping import ReifiedGeneric, T
 T2 = TypeVar("T2")
 
 
-class Reified(ReifiedGeneric[tuple[T, T2]]):
+class Reified(ReifiedGeneric[Tuple[T, T2]]):
     pass
 
 
-class Reified2(ReifiedGeneric[tuple[T, T2]]):
+class Reified2(ReifiedGeneric[Tuple[T, T2]]):
     pass
 
 
@@ -23,10 +23,10 @@ def test_isinstance_with_out_of_order_params() -> None:
     class B(ReifiedGeneric[T]):
         pass
 
-    class C1(A[T], B[T2], ReifiedGeneric[tuple[T, T2]]):
+    class C1(A[T], B[T2], ReifiedGeneric[Tuple[T, T2]]):
         pass
 
-    class C2(A[T], B[T2], ReifiedGeneric[tuple[T2, T]]):
+    class C2(A[T], B[T2], ReifiedGeneric[Tuple[T2, T]]):
         pass
 
     assert isinstance(C1[int, str](), B[str])  # type: ignore[misc]

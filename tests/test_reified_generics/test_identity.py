@@ -1,11 +1,11 @@
-from typing import TypeVar
+from typing import Tuple, TypeVar
 
 from basedtyping import ReifiedGeneric, T
 
 U = TypeVar("U")
 
 
-class Reified(ReifiedGeneric[tuple[T, U]]):
+class Reified(ReifiedGeneric[Tuple[T, U]]):
     pass
 
 

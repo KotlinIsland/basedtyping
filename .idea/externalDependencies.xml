@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ExternalDependencies">
+    <plugin id="app.teamhub" />
     <plugin id="com.intellij.plugins.watcher" />
-    <plugin id="com.koxudaxi.poetry" />
-    <plugin id="com.leinardi.pycharm.mypy" />
-    <plugin id="com.leinardi.pycharm.pylint" />
     <plugin id="zielu.gittoolbox" />
   </component>
 </project>
