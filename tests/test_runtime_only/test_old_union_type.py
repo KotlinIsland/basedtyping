@@ -1,3 +1,4 @@
+import sys
 from typing import Union
 
 from basedtyping.runtime_only import OldUnionType
@@ -8,4 +9,5 @@ def test_old_union() -> None:
 
 
 def test_new_union() -> None:
-    assert not isinstance(int | str, OldUnionType)
+    if sys.version_info >= (3, 10):
+        assert not isinstance(int | str, OldUnionType)

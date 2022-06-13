@@ -1,5 +1,4 @@
-from types import NoneType
-from typing import Generic, TypeVar
+from typing import Generic, List, Tuple, TypeVar
 
 from pytest import raises
 
@@ -7,12 +6,14 @@ from basedtyping import NotReifiedError, ReifiedGeneric, T
 
 T2 = TypeVar("T2")
 
+NoneType = type(None)
 
-class Reified(ReifiedGeneric[tuple[T, T2]]):
+
+class Reified(ReifiedGeneric[Tuple[T, T2]]):
     pass
 
 
-class ReifiedList(ReifiedGeneric[tuple[T]], list[T]):
+class ReifiedList(ReifiedGeneric[Tuple[T]], List[T]):
     pass
 
 
@@ -25,11 +26,11 @@ not_reified_parameter_error_match = "TypeVars cannot be used"
 
 def test_class_args_and_params_class() -> None:
     assert (
-        Normal[int, str].__args__  # type: ignore[attr-defined,dynamic]
+        Normal[int, str].__args__  # type: ignore[attr-defined, no-any-expr]
         == Reified[int, str].__reified_generics__
     )
     assert (
-        Normal[int, str].__parameters__  # type: ignore[attr-defined,dynamic]
+        Normal[int, str].__parameters__  # type: ignore[attr-defined, no-any-expr]
         == Reified[int, str].__type_vars__
     )
 

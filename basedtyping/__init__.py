@@ -1,28 +1,34 @@
 """The main ``basedtyping`` module. the types/functions defined here can be used at both type-time and at runtime."""
 from __future__ import annotations
 
-from types import UnionType
+import sys
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
+    ForwardRef,
     Generic,
     NoReturn,
     Sequence,
-    TypeGuard,
+    Tuple,
+    Type,
     TypeVar,
     Union,
     _SpecialForm,
     cast,
 )
 
+from typing_extensions import Final, TypeAlias, TypeGuard
+
 from basedtyping.runtime_only import OldUnionType
 
 if not TYPE_CHECKING:
     # TODO: remove the TYPE_CHECKING block once these are typed in basedtypeshed
-    from typing import _collect_type_vars, _tp_cache, _type_convert
+    from typing import _collect_type_vars, _tp_cache
+
 
 if TYPE_CHECKING:
-    Function = Callable[..., object]  # type: ignore[dynamic]
+    Function = Callable[..., object]  # type: ignore[no-any-explicit]
     """Any ``Callable``. useful when using mypy with ``disallow-any-explicit``
     due to https://github.com/python/mypy/issues/9496
 
@@ -45,6 +51,18 @@ Never = NoReturn
 """A value that can never exist. This is the narrowest possible form."""
 
 
+def _type_convert(arg: object) -> object:
+    """For converting None to type(None), and strings to ForwardRef.
+
+    Stolen from typing.
+    """
+    if arg is None:
+        return type(None)
+    if isinstance(arg, str):
+        return ForwardRef(arg)
+    return arg
+
+
 class ReifiedGenericError(TypeError):
     pass
 
@@ -65,7 +83,7 @@ class NotEnoughTypeParametersError(ReifiedGenericError):
     """Raised when type parameters are passed to a ``ReifiedGeneric`` with an incorrect number of type parameters:
 
     for example:
-    >>> class Foo(ReifiedGeneric[tuple[T, U]]):
+    >>> class Foo(ReifiedGeneric[Tuple[T, U]]):
     ...     ...
     ...
     ... foo = Foo[int]() # wrong
@@ -76,13 +94,13 @@ class NotEnoughTypeParametersError(ReifiedGenericError):
 class _ReifiedGenericMetaclass(type):
     # these should really only be on the class not the metaclass, but since it needs to be accessible from both instances and the class itself, its duplicated here
 
-    __reified_generics__: tuple[type, ...]
+    __reified_generics__: Tuple[type, ...]
     """should be a generic but cant due to https://github.com/python/mypy/issues/11672"""
 
-    __type_vars__: tuple[TypeVar, ...]
-    """``TypeVar``s that have not yet been reified. so this tuple should always be empty by the time the ``ReifiedGeneric`` is instanciated"""
+    __type_vars__: Tuple[TypeVar, ...]
+    """``TypeVar``s that have not yet been reified. so this Tuple should always be empty by the time the ``ReifiedGeneric`` is instanciated"""
 
-    _orig_type_vars: tuple[TypeVar, ...]
+    _orig_type_vars: Tuple[TypeVar, ...]
     """used internally to check the ``__type_vars__`` on the current ``ReifiedGeneric`` against the original one it was copied from
     in ``ReifiedGeneric.__class_getitem__``"""
 
@@ -96,21 +114,21 @@ class _ReifiedGenericMetaclass(type):
             return cls
         return result  # type: ignore[return-value]
 
-    def _type_var_check(cls, args: tuple[type, ...]) -> bool:
+    def _type_var_check(cls, args: Tuple[type, ...]) -> bool:
         if not cls._generics_are_reified():
             if cls._has_non_reified_type_vars():
                 cls._raise_generics_not_reified()
             return True
+        assert len(cls._orig_class().__parameters__) == len(cls.__reified_generics__) == len(args)  # type: ignore[no-any-expr, attr-defined]
         for parameter, self_arg, subclass_arg in zip(
             # normal generics use __parameters__, we use __type_vars__ because the Generic base class deletes properties
             # named __parameters__ when copying to a new class
             cast(
-                tuple[TypeVar, ...],
+                Tuple[TypeVar, ...],
                 cls._orig_class().__parameters__,  # type: ignore[attr-defined]
             ),
             cls.__reified_generics__,
             args,
-            strict=True,
         ):
             if parameter.__contravariant__:
                 if not issubform(self_arg, subclass_arg):
@@ -143,11 +161,11 @@ class _ReifiedGenericMetaclass(type):
         "origin" type (ie. without the generics) is a subclass of this reified generic
         """
         # could be any random instance, check it's a reified generic first:
-        return type.__instancecheck__(  # type: ignore[dynamic]
-            _ReifiedGenericMetaclass,  # type: ignore[dynamic]
+        return type.__instancecheck__(  # type: ignore[no-any-expr]
+            _ReifiedGenericMetaclass,  # type: ignore[no-any-expr]
             subclass,
             # then check that the instance is an instance of this particular reified generic:
-        ) and type.__subclasscheck__(  # type: ignore[dynamic]
+        ) and type.__subclasscheck__(  # type: ignore[no-any-expr]
             cls._orig_class(),
             # https://github.com/python/mypy/issues/11671
             cast(  # pylint:disable=protected-access
@@ -204,10 +222,10 @@ class _ReifiedGenericMetaclass(type):
                 "foo = Foo[int]()  # correct"
             )
         cls._check_generics_reified()
-        return super().__call__(*args, **kwargs)  # type: ignore[dynamic]
+        return super().__call__(*args, **kwargs)  # type: ignore[no-any-expr]
 
 
-GenericItems = Union[type, TypeVar, tuple[type | TypeVar, ...]]
+GenericItems: TypeAlias = Union[type, TypeVar, Tuple[Union[type, TypeVar], ...]]
 """The ``items`` argument passed to ``__class_getitem__`` when creating or using a ``Generic``"""
 
 
@@ -225,9 +243,9 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     ...  foo: Foo[int] = Foo() # error: generic cannot be reified
     ...  foo = Foo[int]() # no error, as types have been supplied in a runtime position
 
-    To define multiple generics, use a tuple type:
+    To define multiple generics, use a Tuple type:
 
-    >>> class Foo(ReifiedGeneric[tuple[T, U]]):
+    >>> class Foo(ReifiedGeneric[Tuple[T, U]]):
     ...     pass
     ...
     ... foo = Foo[int, str]()
@@ -243,19 +261,19 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     is tracked [here](https://github.com/KotlinIsland/basedmypy/issues/5)
     """
 
-    __reified_generics__: tuple[type, ...]
+    __reified_generics__: Tuple[type, ...]
     """Should be a generic but cant due to https://github.com/KotlinIsland/basedmypy/issues/142"""
-    __type_vars__: tuple[TypeVar, ...]
-    """``TypeVar``\\s that have not yet been reified. so this tuple should always be empty by the time the ``ReifiedGeneric`` is instantiated"""
+    __type_vars__: Tuple[TypeVar, ...]
+    """``TypeVar``\\s that have not yet been reified. so this Tuple should always be empty by the time the ``ReifiedGeneric`` is instantiated"""
 
-    @_tp_cache  # type: ignore[name-defined,dynamic,misc]
-    def __class_getitem__(  # type: ignore[dynamic]
+    @_tp_cache  # type: ignore[name-defined, no-any-expr, misc]
+    def __class_getitem__(  # type: ignore[no-any-decorated]
         cls, item: GenericItems
-    ) -> type[ReifiedGeneric[T]]:
+    ) -> Type[ReifiedGeneric[T]]:
         # when defining the generic (ie. `class Foo(ReifiedGeneric[T]):`) we want the normal behavior
         if cls is ReifiedGeneric:
             # https://github.com/KotlinIsland/basedtypeshed/issues/7
-            return super().__class_getitem__(item)  # type: ignore[dynamic,misc,no-any-return]
+            return super().__class_getitem__(item)  # type: ignore[no-any-expr, misc, no-any-return]
 
         items = item if isinstance(item, tuple) else (item,)
 
@@ -265,7 +283,8 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             for generic in (
                 cls.__reified_generics__ if hasattr(cls, "__reified_generics__") else ()
             )
-            if not isinstance(generic, TypeVar)  # type: ignore[dynamic]
+            # TODO: investigate this unreachable, redundant-expr
+            if not isinstance(generic, TypeVar)  # type: ignore[unused-ignore, unreachable, redundant-expr, no-any-expr]
         )
 
         # normal generics use __parameters__, we use __type_vars__ because the Generic base class deletes properties
@@ -274,7 +293,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             cls.__type_vars__
             if hasattr(cls, "__type_vars__")
             else cast(
-                tuple[TypeVar, ...], cls.__parameters__  # type: ignore[attr-defined]
+                Tuple[TypeVar, ...], cls.__parameters__  # type: ignore[attr-defined]
             )
         )
 
@@ -287,18 +306,18 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
                 "Incorrect number of type parameters specified. expected length:"
                 f" {expected_length}, actual length {actual_length}"
             )
-        ReifiedGenericCopy: type[ReifiedGeneric[T]] = type(
+        ReifiedGenericCopy: Type[ReifiedGeneric[T]] = type(
             cls.__name__,
             (
                 cls,  # make the copied class extend the original so normal instance checks work
             ),
             # TODO: proper type
-            dict[str, object](
-                __reified_generics__=tuple(
-                    _type_convert(t) for t in items  # type: ignore[name-defined,dynamic]
+            dict(  # type: ignore[no-any-expr]
+                __reified_generics__=tuple(  # type: ignore[no-any-expr]
+                    _type_convert(t) for t in items  # type: ignore[unused-ignore, no-any-expr]
                 ),
                 _orig_type_vars=orig_type_vars,
-                __type_vars__=_collect_type_vars(  # type: ignore[name-defined,dynamic]
+                __type_vars__=_collect_type_vars(  # type: ignore[name-defined, no-any-expr]
                     items, cast(type, TypeVar)
                 ),
             ),
@@ -314,11 +333,19 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
         super().__init_subclass__()
 
 
+if sys.version_info >= (3, 10):
+    from types import UnionType
+
+    _UnionTypes = (UnionType, OldUnionType)
+    _Forms: TypeAlias = type | UnionType | _SpecialForm  # type: ignore[unused-ignore, no-any-expr]
+else:
+    _UnionTypes = (OldUnionType,)
+    _Forms: TypeAlias = Union[type, _SpecialForm]
+
 # TODO: make this work with any "form", not just unions
 #  should be (form: TypeForm, forminfo: TypeForm)
-def issubform(
-    form: type | UnionType | _SpecialForm, forminfo: type | UnionType | _SpecialForm
-) -> bool:
+# TODO: form/forminfo can include _UnionGenericAlias
+def issubform(form: _Forms, forminfo: _Forms) -> bool:
     """EXPERIMENTAL: Warning, this function currently only supports unions and ``Never``.
 
     Returns ``True`` if ``form`` is a subform (specialform or subclass) of ``forminfo``.
@@ -336,14 +363,47 @@ def issubform(
     >>> issubform(int | str, object)
     True
     """
-    # type ignores because issubclass doesn't support _SpecialForm, but we do
-    if isinstance(form, UnionType | OldUnionType):
-        for t in cast(Sequence[type], cast(UnionType, form).__args__):
+    if isinstance(form, _UnionTypes):
+        # Morally, form is an instance of "UnionType | _UnionGenericAlias"
+        #  But _UnionGenericAlias doesn't have any representation at type time.
+        for t in cast(Sequence[type], form.__args__):  # type: ignore[union-attr]
             if not issubform(t, forminfo):
                 return False
         return True
+    if sys.version_info < (3, 10) and isinstance(forminfo, OldUnionType):
+        # Morally, forminfo is an instance of "_UnionGenericAlias"
+        #  But _UnionGenericAlias doesn't have any representation at type time.
+        for t in cast(Sequence[type], forminfo.__args__):  # type: ignore[unused-ignore, union-attr]
+            if issubform(form, t):
+                return True
+        return False
     if form is Never:
         return True
     if forminfo is Never:
         return False
     return issubclass(form, forminfo)  # type: ignore[arg-type]
+
+
+if TYPE_CHECKING:
+    # We pretend that it's an alias to Any so that it's slightly more compatible with
+    #  other tools, basedmypy will still utilize the SpecialForm over the TypeAlias.
+    Untyped: TypeAlias = Any  # type: ignore[no-any-explicit]
+else:
+    if sys.version_info >= (3, 9):
+
+        @_SpecialForm  # `_SpecialForm`s init isn't typed
+        def Untyped(self: _SpecialForm, parameters: object) -> NoReturn:
+            """Special type indicating that something isn't typed.
+
+            This is more specialized than ``Any`` and can help with gradually typing modules.
+            """
+            raise TypeError(f"{self} is not subscriptable")
+
+    else:
+        Untyped: Final = _SpecialForm(
+            "Untyped",
+            doc=(
+                "Special type indicating that something isn't typed.\nThis is more"
+                " specialized than ``Any`` and can help with gradually typing modules."
+            ),
+        )
