@@ -8,7 +8,9 @@ from typing import Type, Union
 
 from typing_extensions import Final as Final_ext
 
-if sys.version_info >= (3, 8):
+if sys.version_info >= (3, 9):
+    # Despite the fact that Literal is in 3.8, it is just a _GenericAlias,
+    #  so would be broken
     from typing import Final, Literal
 
     LiteralType: Final = type(Literal[1])
