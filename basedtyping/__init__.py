@@ -24,7 +24,12 @@ from basedtyping.runtime_only import OldUnionType
 
 if not TYPE_CHECKING:
     # TODO: remove the TYPE_CHECKING block once these are typed in basedtypeshed
-    from typing import _collect_type_vars, _tp_cache
+    from typing import _tp_cache
+
+    if sys.version_info >= (3, 11):
+        from typing import _collect_parameters
+    else:
+        from typing import _collect_type_vars as _collect_parameters
 
 
 if TYPE_CHECKING:
@@ -317,9 +322,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
                     _type_convert(t) for t in items  # type: ignore[unused-ignore, no-any-expr]
                 ),
                 _orig_type_vars=orig_type_vars,
-                __type_vars__=_collect_type_vars(  # type: ignore[name-defined, no-any-expr]
-                    items, cast(type, TypeVar)
-                ),
+                __type_vars__=_collect_parameters(items),  # type: ignore[name-defined, no-any-expr]
             ),
         )
         # can't set it in the dict above otherwise __init_subclass__ overwrites it
