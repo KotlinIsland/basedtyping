@@ -27,7 +27,7 @@ jobs:
         id: cache
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
+          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
       - name: Ensure cache is healthy
         if: steps.cache.outputs.cache-hit == 'true'
         run: timeout 10s poetry run pip --version || rm -rf .venv
@@ -43,7 +43,7 @@ jobs:
         with:
           python-version: "3.7"
       - name: Run image
-        uses: abatilo/actions-poetry@v2
+        uses: abatilo/actions-poetry@v2.1.6
         with:
           poetry-version: ${{ env.POETRY_VERSION }}
       - run: poetry config virtualenvs.in-project true

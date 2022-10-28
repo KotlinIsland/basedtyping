@@ -4,7 +4,7 @@ from typing import Union
 import pytest
 
 
-@pytest.mark.skipif(sys.version_info < (3, 9))
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="need 3.9 for LiteralType")
 def test_literal_type_positive() -> None:
     from typing import Literal
 
@@ -13,7 +13,7 @@ def test_literal_type_positive() -> None:
     assert isinstance(Literal[1, 2], LiteralType)
 
 
-@pytest.mark.skipif(sys.version_info < (3, 9))
+@pytest.mark.skipif(sys.version_info < (3, 9), reason="need 3.9 for LiteralType")
 def test_literal_type_negative() -> None:
     from basedtyping.runtime_only import LiteralType
 
