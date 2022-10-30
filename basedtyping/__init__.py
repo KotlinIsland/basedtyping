@@ -113,7 +113,8 @@ class _ReifiedGenericMetaclass(type):
     """Used internally for ``isinstance`` and ``issubclass`` checks, ``True`` when the class can currenty be used in said checks without generics in them"""
 
     def _orig_class(cls) -> _ReifiedGenericMetaclass:
-        """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from"""
+        """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from
+        """
         result = cls.__bases__[0]
         if result is ReifiedGeneric:
             return cls
@@ -124,7 +125,7 @@ class _ReifiedGenericMetaclass(type):
             if cls._has_non_reified_type_vars():
                 cls._raise_generics_not_reified()
             return True
-        assert len(cls._orig_class().__parameters__) == len(cls.__reified_generics__) == len(args)  # type: ignore[no-any-expr, attr-defined]
+        assert len(cls._orig_class().__parameters__) == len(cls.__reified_generics__) == len(args)  # type: ignore[attr-defined]
         for parameter, self_arg, subclass_arg in zip(
             # normal generics use __parameters__, we use __type_vars__ because the Generic base class deletes properties
             # named __parameters__ when copying to a new class
@@ -271,14 +272,14 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     __type_vars__: Tuple[TypeVar, ...]
     """``TypeVar``\\s that have not yet been reified. so this Tuple should always be empty by the time the ``ReifiedGeneric`` is instantiated"""
 
-    @_tp_cache  # type: ignore[name-defined, no-any-expr, misc]
+    @_tp_cache  # type: ignore[name-defined, misc]
     def __class_getitem__(  # type: ignore[no-any-decorated]
         cls, item: GenericItems
     ) -> Type[ReifiedGeneric[T]]:
         # when defining the generic (ie. `class Foo(ReifiedGeneric[T]):`) we want the normal behavior
         if cls is ReifiedGeneric:
             # https://github.com/KotlinIsland/basedtypeshed/issues/7
-            return super().__class_getitem__(item)  # type: ignore[no-any-expr, misc, no-any-return]
+            return super().__class_getitem__(item)  # type: ignore[misc, no-any-return]
 
         items = item if isinstance(item, tuple) else (item,)
 
@@ -322,7 +323,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
                     _type_convert(t) for t in items  # type: ignore[unused-ignore, no-any-expr]
                 ),
                 _orig_type_vars=orig_type_vars,
-                __type_vars__=_collect_parameters(items),  # type: ignore[name-defined, no-any-expr]
+                __type_vars__=_collect_parameters(items),  # type: ignore[name-defined]
             ),
         )
         # can't set it in the dict above otherwise __init_subclass__ overwrites it
