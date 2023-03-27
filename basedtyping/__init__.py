@@ -24,12 +24,24 @@ from basedtyping.runtime_only import OldUnionType
 
 if not TYPE_CHECKING:
     # TODO: remove the TYPE_CHECKING block once these are typed in basedtypeshed
-    from typing import _tp_cache
+    from typing import _GenericAlias, _remove_dups_flatten, _tp_cache, _type_check
 
     if sys.version_info >= (3, 11):
         from typing import _collect_parameters
     else:
         from typing import _collect_type_vars as _collect_parameters
+
+if not TYPE_CHECKING:
+
+    class _BasedSpecialForm(_SpecialForm, _root=True):
+        def __repr__(self):
+            return "basedtyping." + self._name
+
+        if sys.version_info < (3, 9):
+
+            def __getitem__(self, item):
+                if self._name == "Intersection":
+                    return _IntersectionGenericAlias(self, item)
 
 
 if TYPE_CHECKING:
@@ -404,10 +416,84 @@ else:
             raise TypeError(f"{self} is not subscriptable")
 
     else:
-        Untyped: Final = _SpecialForm(
+        Untyped: Final = _BasedSpecialForm(
             "Untyped",
             doc=(
                 "Special type indicating that something isn't typed.\nThis is more"
                 " specialized than ``Any`` and can help with gradually typing modules."
             ),
         )
+
+if not TYPE_CHECKING:
+
+    class _IntersectionGenericAlias(_GenericAlias, _root=True):
+        def copy_with(self, params):
+            return Intersection[params]
+
+        def __eq__(self, other):
+            if not isinstance(other, _IntersectionGenericAlias):
+                return NotImplemented
+            return set(self.__args__) == set(other.__args__)
+
+        def __hash__(self):
+            return hash(frozenset(self.__args__))
+
+        def __instancecheck__(self, obj):
+            return self.__subclasscheck__(type(obj))
+
+        def __subclasscheck__(self, cls):
+            for arg in self.__args__:
+                if issubclass(cls, arg):
+                    return True
+
+        def __reduce__(self):
+            func, (origin, args) = super().__reduce__()
+            return func, (Intersection, args)
+
+    if sys.version_info > (3, 9):
+
+        @_BasedSpecialForm
+        def Intersection(self, parameters):
+            """Intersection type; Intersection[X, Y] means both X and Y.
+
+            To define an intersection:
+            - If using __future__.annotations, shortform can be used e.g. A & B
+            - otherwise the fullform must be used e.g. Intersection[A, B].
+
+            Details:
+            - The arguments must be types and there must be at least one.
+            - None as an argument is a special case and is replaced by
+              type(None).
+            - Intersections of intersections are flattened, e.g.::
+
+                Intersection[Intersection[int, str], float] == Intersection[int, str, float]
+
+            - Intersections of a single argument vanish, e.g.::
+
+                Intersection[int] == int  # The constructor actually returns int
+
+            - Redundant arguments are skipped, e.g.::
+
+                Intersection[int, str, int] == Intersection[int, str]
+
+            - When comparing intersections, the argument order is ignored, e.g.::
+
+                Intersection[int, str] == Intersection[str, int]
+
+            - You cannot subclass or instantiate an intersection.
+            """
+            if parameters == ():
+                raise TypeError("Cannot take an Intersection of no types.")
+            if not isinstance(parameters, tuple):
+                parameters = (parameters,)
+            msg = "Intersection[arg, ...]: each arg must be a type."
+            parameters = tuple(_type_check(p, msg) for p in parameters)
+            parameters = _remove_dups_flatten(parameters)
+            if len(parameters) == 1:
+                return parameters[0]
+            return _IntersectionGenericAlias(self, parameters)
+
+    else:
+        Intersection = _BasedSpecialForm("Intersection", doc="")
+else:
+    Intersection: _SpecialForm
