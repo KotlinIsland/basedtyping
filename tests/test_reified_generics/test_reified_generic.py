@@ -76,4 +76,8 @@ def test_concrete_subclass() -> None:
 
 
 def test_none_type() -> None:
-    assert Reified[None, None].__reified_generics__ == (NoneType, NoneType)
+    # TODO: is this mypy error correct?
+    assert Reified[None, None].__reified_generics__ == (
+        NoneType,
+        NoneType,
+    )  # type:ignore[comparison-overlap]
