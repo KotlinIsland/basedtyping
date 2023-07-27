@@ -127,7 +127,8 @@ class _ReifiedGenericMetaclass(type, Generic[T]):
     """Used internally for ``isinstance`` and ``issubclass`` checks, ``True`` when the class can currenty be used in said checks without generics in them"""
 
     def _orig_class(cls) -> _ReifiedGenericMetaclass[T]:
-        """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from"""
+        """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from
+        """
         result = cls.__bases__[0]
         if result is ReifiedGeneric:
             return cls
