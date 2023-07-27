@@ -2,9 +2,13 @@
   "recommendations": [
     "ms-python.python",
     "ms-python.vscode-pylance",
+    "ms-python.pylint",
+    "ms-python.black-formatter",
+    "ms-python.isort",
     "eamodio.gitlens",
     "mhutchie.git-graph",
     "ninoseki.vscode-pylens",
-    "tamasfe.even-better-toml"
+    "tamasfe.even-better-toml",
+    "redhat.vscode-yaml"
   ]
 }
