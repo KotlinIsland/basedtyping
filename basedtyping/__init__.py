@@ -9,7 +9,6 @@ from typing import (
     ForwardRef,
     Generic,
     NoReturn,
-    Self,
     Sequence,
     Tuple,
     Type,
@@ -19,7 +18,7 @@ from typing import (
     cast,
 )
 
-from typing_extensions import Final, TypeAlias, TypeGuard
+from typing_extensions import Final, Self, TypeAlias, TypeGuard
 
 from basedtyping.runtime_only import OldUnionType
 
