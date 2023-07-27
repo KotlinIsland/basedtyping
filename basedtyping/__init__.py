@@ -9,6 +9,7 @@ from typing import (
     ForwardRef,
     Generic,
     NoReturn,
+    Self,
     Sequence,
     Tuple,
     Type,
@@ -108,7 +109,7 @@ class NotEnoughTypeParametersError(ReifiedGenericError):
     """
 
 
-class _ReifiedGenericMetaclass(type):
+class _ReifiedGenericMetaclass(type, Generic[T]):
     # these should really only be on the class not the metaclass, but since it needs to be accessible from both instances and the class itself, its duplicated here
 
     __reified_generics__: Tuple[type, ...]
@@ -124,9 +125,8 @@ class _ReifiedGenericMetaclass(type):
     _can_do_instance_and_subclass_checks_without_generics: bool
     """Used internally for ``isinstance`` and ``issubclass`` checks, ``True`` when the class can currenty be used in said checks without generics in them"""
 
-    def _orig_class(cls) -> _ReifiedGenericMetaclass:
-        """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from
-        """
+    def _orig_class(cls) -> _ReifiedGenericMetaclass[T]:
+        """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from"""
         result = cls.__bases__[0]
         if result is ReifiedGeneric:
             return cls
@@ -174,7 +174,7 @@ class _ReifiedGenericMetaclass(type):
         if not cls._generics_are_reified() or cls._has_non_reified_type_vars():
             cls._raise_generics_not_reified()
 
-    def _is_subclass(cls, subclass: object) -> TypeGuard[_ReifiedGenericMetaclass]:
+    def _is_subclass(cls, subclass: object) -> TypeGuard[_ReifiedGenericMetaclass[T]]:
         """For ``__instancecheck__`` and ``__subclasscheck__``. checks whether the
         "origin" type (ie. without the generics) is a subclass of this reified generic
         """
@@ -187,7 +187,7 @@ class _ReifiedGenericMetaclass(type):
             cls._orig_class(),
             # https://github.com/python/mypy/issues/11671
             cast(  # pylint:disable=protected-access
-                _ReifiedGenericMetaclass, subclass
+                _ReifiedGenericMetaclass[T], subclass
             )._orig_class(),
         )
 
@@ -219,7 +219,7 @@ class _ReifiedGenericMetaclass(type):
             cast(ReifiedGeneric[object], instance).__reified_generics__
         )
 
-    def __call__(cls, *args: object, **kwargs: object) -> object:
+    def __call__(cls, *args: object, **kwargs: object) -> T:
         """A placeholder ``__call__`` method that gets called when the class is
         instantiated directly, instead of first supplying the type parameters.
         """
@@ -240,14 +240,19 @@ class _ReifiedGenericMetaclass(type):
                 "foo = Foo[int]()  # correct"
             )
         cls._check_generics_reified()
-        return super().__call__(*args, **kwargs)  # type: ignore[no-any-expr]
+        return cast(T, super().__call__(*args, **kwargs))
 
 
 GenericItems: TypeAlias = Union[type, TypeVar, Tuple[Union[type, TypeVar], ...]]
 """The ``items`` argument passed to ``__class_getitem__`` when creating or using a ``Generic``"""
 
 
-class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
+class ReifiedGeneric(
+    # mypy doesn't support metaclasses with generics but it's needed for pyrright to correctly type the `__call__
+    # return type, otherwise all instances of `ReifiedGeneric` will have the wrong type
+    Generic[T],
+    metaclass=_ReifiedGenericMetaclass[Self],  # type:ignore[misc]
+):
     """A ``Generic`` where the type parameters are available at runtime and is
     usable in ``isinstance`` and ``issubclass`` checks.
 
