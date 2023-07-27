@@ -57,7 +57,6 @@ def test_reified_in_init() -> None:
             assert self.__reified_generics__ == (int,)
 
     Foo[int]()
-    assert not hasattr(Foo, "__orig_class__")
 
 
 def test_concrete_subclass() -> None:

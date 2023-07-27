@@ -260,7 +260,7 @@ class ReifiedGeneric(
 
     >>> class Foo(ReifiedGeneric[T]):
     ...     def create_instance(self) -> T:
-    ...         cls = self.__orig_class__.__args__[0]
+    ...         cls = self.__reified_generics__[0]
     ...         return cls()
     ...
     ...  foo: Foo[int] = Foo() # error: generic cannot be reified
