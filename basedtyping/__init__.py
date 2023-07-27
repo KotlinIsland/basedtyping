@@ -249,9 +249,9 @@ GenericItems: TypeAlias = Union[type, TypeVar, Tuple[Union[type, TypeVar], ...]]
 
 
 class ReifiedGeneric(
+    Generic[T],
     # mypy doesn't support metaclasses with generics but it's needed for pyrright to correctly type the `__call__
     # return type, otherwise all instances of `ReifiedGeneric` will have the wrong type
-    Generic[T],
     metaclass=_ReifiedGenericMetaclass[Self],  # type:ignore[misc]
 ):
     """A ``Generic`` where the type parameters are available at runtime and is
