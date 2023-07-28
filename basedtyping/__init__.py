@@ -225,7 +225,7 @@ class _ReifiedGenericMetaclass(type):
         """A placeholder ``__call__`` method that gets called when the class is
         instantiated directly, instead of first supplying the type parameters.
         """
-        cls_narrowed = cast(type[ReifiedGeneric[object]], cls)
+        cls_narrowed = cast(Type[ReifiedGeneric[object]], cls)
         if (
             # instantiating a ReifiedGeneric without specifying any TypeVars
             not hasattr(cls_narrowed, "_orig_type_vars")
