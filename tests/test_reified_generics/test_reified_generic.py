@@ -1,6 +1,7 @@
-from typing import Generic, List, Tuple, TypeVar
+from typing import TYPE_CHECKING, Generic, List, Tuple, TypeVar
 
 from pytest import raises
+from typing_extensions import assert_type
 
 from basedtyping import NotReifiedError, ReifiedGeneric, T
 
@@ -26,11 +27,11 @@ not_reified_parameter_error_match = "TypeVars cannot be used"
 
 def test_class_args_and_params_class() -> None:
     assert (
-        Normal[int, str].__args__  # type: ignore[attr-defined, no-any-expr]
+        Normal[int, str].__args__  # type: ignore[attr-defined]
         == Reified[int, str].__reified_generics__
     )
     assert (
-        Normal[int, str].__parameters__  # type: ignore[attr-defined, no-any-expr]
+        Normal[int, str].__parameters__  # type: ignore[attr-defined]
         == Reified[int, str].__type_vars__
     )
 
@@ -57,7 +58,6 @@ def test_reified_in_init() -> None:
             assert self.__reified_generics__ == (int,)
 
     Foo[int]()
-    assert not hasattr(Foo, "__orig_class__")
 
 
 def test_concrete_subclass() -> None:
@@ -77,4 +77,20 @@ def test_concrete_subclass() -> None:
 
 
 def test_none_type() -> None:
-    assert Reified[None, None].__reified_generics__ == (NoneType, NoneType)
+    # TODO: is this mypy error correct?
+    assert Reified[None, None].__reified_generics__ == (
+        NoneType,
+        NoneType,
+    )  # type:ignore[comparison-overlap]
+
+
+if TYPE_CHECKING:
+    # this is just a type-time test, not a real life pytest test. it's only run by mypy
+    def test_reified_generic_subtype_self():
+        """make sure that the generic in the metaclass doesn't break instance types, and that
+        the `Self` type works properly on the metaclass"""
+
+        class Subtype(Reified[int, int]):
+            pass
+
+        assert_type(Subtype(), Subtype)

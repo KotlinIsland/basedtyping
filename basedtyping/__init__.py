@@ -18,7 +18,7 @@ from typing import (
     cast,
 )
 
-from typing_extensions import Final, TypeAlias, TypeGuard
+from typing_extensions import Final, Self, TypeAlias, TypeGuard
 
 from basedtyping.runtime_only import OldUnionType
 
@@ -42,6 +42,7 @@ if not TYPE_CHECKING:
             def __getitem__(self, item):
                 if self._name == "Intersection":
                     return _IntersectionGenericAlias(self, item)
+                return None
 
 
 if TYPE_CHECKING:
@@ -60,7 +61,7 @@ else:
 
 T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
-T_cont = TypeVar("T_cont", contravariant=True)
+T_contra = TypeVar("T_contra", contravariant=True)
 Fn = TypeVar("Fn", bound=Function)
 
 
@@ -108,7 +109,7 @@ class NotEnoughTypeParametersError(ReifiedGenericError):
     """
 
 
-class _ReifiedGenericMetaclass(type):
+class _ReifiedGenericMetaclass(type, Generic[T]):
     # these should really only be on the class not the metaclass, but since it needs to be accessible from both instances and the class itself, its duplicated here
 
     __reified_generics__: Tuple[type, ...]
@@ -124,7 +125,7 @@ class _ReifiedGenericMetaclass(type):
     _can_do_instance_and_subclass_checks_without_generics: bool
     """Used internally for ``isinstance`` and ``issubclass`` checks, ``True`` when the class can currenty be used in said checks without generics in them"""
 
-    def _orig_class(cls) -> _ReifiedGenericMetaclass:
+    def _orig_class(cls) -> _ReifiedGenericMetaclass[T]:
         """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from
         """
         result = cls.__bases__[0]
@@ -174,20 +175,20 @@ class _ReifiedGenericMetaclass(type):
         if not cls._generics_are_reified() or cls._has_non_reified_type_vars():
             cls._raise_generics_not_reified()
 
-    def _is_subclass(cls, subclass: object) -> TypeGuard[_ReifiedGenericMetaclass]:
+    def _is_subclass(cls, subclass: object) -> TypeGuard[_ReifiedGenericMetaclass[T]]:
         """For ``__instancecheck__`` and ``__subclasscheck__``. checks whether the
         "origin" type (ie. without the generics) is a subclass of this reified generic
         """
         # could be any random instance, check it's a reified generic first:
-        return type.__instancecheck__(  # type: ignore[no-any-expr]
-            _ReifiedGenericMetaclass,  # type: ignore[no-any-expr]
+        return type.__instancecheck__(
+            _ReifiedGenericMetaclass,
             subclass,
             # then check that the instance is an instance of this particular reified generic:
-        ) and type.__subclasscheck__(  # type: ignore[no-any-expr]
+        ) and type.__subclasscheck__(
             cls._orig_class(),
             # https://github.com/python/mypy/issues/11671
             cast(  # pylint:disable=protected-access
-                _ReifiedGenericMetaclass, subclass
+                _ReifiedGenericMetaclass[T], subclass
             )._orig_class(),
         )
 
@@ -219,7 +220,7 @@ class _ReifiedGenericMetaclass(type):
             cast(ReifiedGeneric[object], instance).__reified_generics__
         )
 
-    def __call__(cls, *args: object, **kwargs: object) -> object:
+    def __call__(cls, *args: object, **kwargs: object) -> T:
         """A placeholder ``__call__`` method that gets called when the class is
         instantiated directly, instead of first supplying the type parameters.
         """
@@ -240,14 +241,19 @@ class _ReifiedGenericMetaclass(type):
                 "foo = Foo[int]()  # correct"
             )
         cls._check_generics_reified()
-        return super().__call__(*args, **kwargs)  # type: ignore[no-any-expr]
+        return cast(T, super().__call__(*args, **kwargs))
 
 
 GenericItems: TypeAlias = Union[type, TypeVar, Tuple[Union[type, TypeVar], ...]]
 """The ``items`` argument passed to ``__class_getitem__`` when creating or using a ``Generic``"""
 
 
-class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
+class ReifiedGeneric(
+    Generic[T],
+    # mypy doesn't support metaclasses with generics but for pyright we need to correctly type the `__call__`
+    # return type, otherwise all instances of `ReifiedGeneric` will have the wrong type
+    metaclass=_ReifiedGenericMetaclass[Self],  # type:ignore[misc]
+):
     """A ``Generic`` where the type parameters are available at runtime and is
     usable in ``isinstance`` and ``issubclass`` checks.
 
@@ -255,7 +261,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
 
     >>> class Foo(ReifiedGeneric[T]):
     ...     def create_instance(self) -> T:
-    ...         cls = self.__orig_class__.__args__[0]
+    ...         cls = self.__reified_generics__[0]
     ...         return cls()
     ...
     ...  foo: Foo[int] = Foo() # error: generic cannot be reified
@@ -310,9 +316,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
         orig_type_vars = (
             cls.__type_vars__
             if hasattr(cls, "__type_vars__")
-            else cast(
-                Tuple[TypeVar, ...], cls.__parameters__  # type: ignore[attr-defined]
-            )
+            else cast(Tuple[TypeVar, ...], cls.__parameters__)
         )
 
         # add any reified generics from the superclass if there is one
@@ -330,13 +334,13 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
                 cls,  # make the copied class extend the original so normal instance checks work
             ),
             # TODO: proper type
-            dict(  # type: ignore[no-any-expr]
-                __reified_generics__=tuple(  # type: ignore[no-any-expr]
+            {  # type: ignore[no-any-expr]
+                "__reified_generics__": tuple(  # type: ignore[no-any-expr]
                     _type_convert(t) for t in items  # type: ignore[unused-ignore, no-any-expr]
                 ),
-                _orig_type_vars=orig_type_vars,
-                __type_vars__=_collect_parameters(items),  # type: ignore[name-defined]
-            ),
+                "_orig_type_vars": orig_type_vars,
+                "__type_vars__": _collect_parameters(items),  # type: ignore[name-defined]
+            },
         )
         # can't set it in the dict above otherwise __init_subclass__ overwrites it
         ReifiedGenericCopy._can_do_instance_and_subclass_checks_without_generics = (  # pylint:disable=protected-access
@@ -357,6 +361,7 @@ if sys.version_info >= (3, 10):
 else:
     _UnionTypes = (OldUnionType,)
     _Forms: TypeAlias = Union[type, _SpecialForm]
+
 
 # TODO: make this work with any "form", not just unions
 #  should be (form: TypeForm, forminfo: TypeForm)
@@ -416,7 +421,8 @@ else:
             raise TypeError(f"{self} is not subscriptable")
 
     else:
-        Untyped: Final = _BasedSpecialForm(
+        # old version had the doc argument
+        Untyped: Final = _BasedSpecialForm(  # pylint:disable=unexpected-keyword-arg
             "Untyped",
             doc=(
                 "Special type indicating that something isn't typed.\nThis is more"
@@ -427,8 +433,8 @@ else:
 if not TYPE_CHECKING:
 
     class _IntersectionGenericAlias(_GenericAlias, _root=True):
-        def copy_with(self, params):
-            return Intersection[params]
+        def copy_with(self, args):
+            return Intersection[args]
 
         def __eq__(self, other):
             if not isinstance(other, _IntersectionGenericAlias):
@@ -445,9 +451,10 @@ if not TYPE_CHECKING:
             for arg in self.__args__:
                 if issubclass(cls, arg):
                     return True
+            return False
 
         def __reduce__(self):
-            func, (origin, args) = super().__reduce__()
+            func, (_, args) = super().__reduce__()
             return func, (Intersection, args)
 
     if sys.version_info > (3, 9):
@@ -494,6 +501,9 @@ if not TYPE_CHECKING:
             return _IntersectionGenericAlias(self, parameters)
 
     else:
-        Intersection = _BasedSpecialForm("Intersection", doc="")
+        # old version had the doc argument
+        Intersection = _BasedSpecialForm(  # pylint:disable=unexpected-keyword-arg
+            "Intersection", doc=""
+        )
 else:
     Intersection: _SpecialForm

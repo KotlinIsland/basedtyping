@@ -23,12 +23,12 @@ def test_isinstance(_value: T) -> None:
         isinstance(Reified[str](), Reified[T])  # type: ignore[misc]
 
 
-def test_unbound_instantiate() -> None:
+def test_unbound_instantiate(_value: T) -> None:
     with raises(NotReifiedError):
         Reified[T]()
 
 
-def test_unbound_isinstance() -> None:
+def test_unbound_isinstance(_value: T) -> None:
     with raises(NotReifiedError):
         isinstance(Reified[str](), Reified[T])  # type: ignore[misc]
 

@@ -5,13 +5,13 @@ authors = [
 ]
 description = "Utilities for basedmypy"
 name = "basedtyping"
-version = "0.0.3"
+version = "0.1.0"
 
 [tool.poetry.dependencies]
-python = "^3.7.2"
+python = "^3.8"
 
 [tool.poetry.dev-dependencies]
-basedmypy = "1.6.0beta1"
+basedmypy = "^2"
 black = "^22"
 flake8 = "^4"
 isort = "^5"
@@ -23,8 +23,8 @@ build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.8"]
 
 [tool.mypy]
-pretty=true
-show_error_context=true
+pretty = true
+show_error_context = true
 
 [tool.isort]
 profile = "black"
@@ -53,6 +53,7 @@ disable = [
     "duplicate-code",                            # https://github.com/PyCQA/pylint/issues/214
     "isinstance-second-argument-not-valid-type", # false positive on Never type, handled by mypy
     "no-value-for-parameter",                    # handled by mypy
+    "too-many-return-statements",
 ]
 enable = ["useless-suppression", "deprecated-pragma"]
 

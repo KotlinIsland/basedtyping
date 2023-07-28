@@ -14,15 +14,15 @@ def test_isinstance() -> None:
 
 
 def test_issubform_true() -> None:
-    assert issubform(Never, int)  # type: ignore[arg-type]
+    assert issubform(Never, int)
 
 
 def test_issubform_false() -> None:
-    assert not issubform(str, Never)  # type: ignore[arg-type]
+    assert not issubform(str, Never)
 
 
 def test_issubform_never_is_never() -> None:
-    assert issubform(Never, Never)  # type: ignore[arg-type]
+    assert issubform(Never, Never)
 
 
 def test_issubclass() -> None:
