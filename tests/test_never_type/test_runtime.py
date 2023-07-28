@@ -8,8 +8,7 @@ from basedtyping import Never, issubform
 @mark.xfail  # https://github.com/KotlinIsland/basedtyping/issues/22
 def test_isinstance() -> None:
     assert not isinstance(  # type: ignore[misc]
-        1,
-        Never,  # type: ignore[arg-type]
+        1, Never  # type: ignore[arg-type]
     )
 
 

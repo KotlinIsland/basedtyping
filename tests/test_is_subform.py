@@ -19,20 +19,13 @@ def test_union_first_arg() -> None:
 
 def test_old_union() -> None:
     # TODO: fix the mypy error
-    assert not issubform(
-        Union[int, str],  # type: ignore[arg-type]
-        int,
-    )
-    assert issubform(
-        Union[int, str],  # type: ignore[arg-type]
-        object,
-    )
+    assert not issubform(Union[int, str], int)  # type: ignore[arg-type]
+    assert issubform(Union[int, str], object)  # type: ignore[arg-type]
     assert issubform(
         Union[int, str],  # type: ignore[arg-type]
         Union[str, int],  # type: ignore[arg-type]
     )
     if sys.version_info >= (3, 10):
         assert issubform(
-            Union[int, str],  # type: ignore[unused-ignore, arg-type]
-            int | str,
+            Union[int, str], int | str  # type: ignore[unused-ignore, arg-type]
         )
