@@ -23,6 +23,7 @@ build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.8"]
 
 [tool.mypy]
+python_version = 3.8
 pretty = true
 show_error_context = true
 
@@ -32,8 +33,9 @@ multi_line_output = 3
 combine_as_imports = true
 
 [tool.black]
-target-version = ["py37"]
+target-version = ["py38"]
 preview = true
+skip-magic-trailing-comma = true
 
 [tool.pylint.MASTER]
 fail-on = "I"
