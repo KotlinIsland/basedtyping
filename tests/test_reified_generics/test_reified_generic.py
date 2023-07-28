@@ -1,6 +1,7 @@
-from typing import Generic, List, Tuple, TypeVar
+from typing import TYPE_CHECKING, Generic, List, Tuple, TypeVar
 
 from pytest import raises
+from typing_extensions import assert_type
 
 from basedtyping import NotReifiedError, ReifiedGeneric, T
 
@@ -81,3 +82,15 @@ def test_none_type() -> None:
         NoneType,
         NoneType,
     )  # type:ignore[comparison-overlap]
+
+
+if TYPE_CHECKING:
+    # this is just a type-time test, not a real life pytest test. it's only run by mypy
+    def test_reified_generic_subtype_self():
+        """make sure that the generic in the metaclass doesn't break instance types, and that
+        the `Self` type works properly on the metaclass"""
+
+        class Subtype(Reified[int, int]):
+            pass
+
+        assert_type(Subtype(), Subtype)
