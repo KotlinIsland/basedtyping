@@ -13,7 +13,8 @@ class Reified(ReifiedGeneric[Tuple[T, T2]]):
     pass
 
 
-class ReifiedList(ReifiedGeneric[Tuple[T]], List[T]):
+# TODO: investigate this "metaclass conflict" mypy error
+class ReifiedList(ReifiedGeneric[Tuple[T]], List[T]):  # type:ignore[misc]
     pass
 
 
