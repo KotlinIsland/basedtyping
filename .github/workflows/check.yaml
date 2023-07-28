@@ -32,7 +32,7 @@ jobs:
         if: steps.cache.outputs.cache-hit == 'true'
         run: timeout 10s poetry run pip --version || rm -rf .venv
       - run: poetry install
-      - run: poetry run mypy -p basedtyping -p tests
+      - run: poetry run mypy -p basedtyping -p tests --python-version ${{ matrix.python-version }}
       - run: poetry run pytest tests/
 
   lint:
