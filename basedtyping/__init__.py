@@ -18,7 +18,7 @@ from typing import (
     cast,
 )
 
-from typing_extensions import Final, Self, TypeAlias, TypeGuard
+from typing_extensions import Final, TypeAlias, TypeGuard
 
 from basedtyping.runtime_only import OldUnionType
 
@@ -109,7 +109,7 @@ class NotEnoughTypeParametersError(ReifiedGenericError):
     """
 
 
-class _ReifiedGenericMetaclass(type, Generic[T]):
+class _ReifiedGenericMetaclass(type):
     # these should really only be on the class not the metaclass, but since it needs to be accessible from both instances and the class itself, its duplicated here
 
     __reified_generics__: Tuple[type, ...]
@@ -125,7 +125,7 @@ class _ReifiedGenericMetaclass(type, Generic[T]):
     _can_do_instance_and_subclass_checks_without_generics: bool
     """Used internally for ``isinstance`` and ``issubclass`` checks, ``True`` when the class can currenty be used in said checks without generics in them"""
 
-    def _orig_class(cls) -> _ReifiedGenericMetaclass[T]:
+    def _orig_class(cls) -> _ReifiedGenericMetaclass:
         """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from
         """
         result = cls.__bases__[0]
@@ -175,7 +175,7 @@ class _ReifiedGenericMetaclass(type, Generic[T]):
         if not cls._generics_are_reified() or cls._has_non_reified_type_vars():
             cls._raise_generics_not_reified()
 
-    def _is_subclass(cls, subclass: object) -> TypeGuard[_ReifiedGenericMetaclass[T]]:
+    def _is_subclass(cls, subclass: object) -> TypeGuard[_ReifiedGenericMetaclass]:
         """For ``__instancecheck__`` and ``__subclasscheck__``. checks whether the
         "origin" type (ie. without the generics) is a subclass of this reified generic
         """
@@ -188,7 +188,7 @@ class _ReifiedGenericMetaclass(type, Generic[T]):
             cls._orig_class(),
             # https://github.com/python/mypy/issues/11671
             cast(  # pylint:disable=protected-access
-                _ReifiedGenericMetaclass[T], subclass
+                _ReifiedGenericMetaclass, subclass
             )._orig_class(),
         )
 
@@ -220,40 +220,35 @@ class _ReifiedGenericMetaclass(type, Generic[T]):
             cast(ReifiedGeneric[object], instance).__reified_generics__
         )
 
-    def __call__(cls, *args: object, **kwargs: object) -> T:
+    # need the generic here for pyright. see https://github.com/microsoft/pyright/issues/5488
+    def __call__(cls: type[T], *args: object, **kwargs: object) -> T:
         """A placeholder ``__call__`` method that gets called when the class is
         instantiated directly, instead of first supplying the type parameters.
         """
+        cls_narrowed = cast(type[ReifiedGeneric[object]], cls)
         if (
             # instantiating a ReifiedGeneric without specifying any TypeVars
-            not hasattr(cls, "_orig_type_vars")
+            not hasattr(cls_narrowed, "_orig_type_vars")
             # instantiating a subtype of a ReifiedGeneric without specifying any TypeVars
-            or cls._orig_type_vars == cls.__type_vars__
+            or cls_narrowed._orig_type_vars == cls_narrowed.__type_vars__
         ):
             raise NotReifiedError(
-                f"Cannot instantiate ReifiedGeneric {cls.__name__!r} because its type"
-                " parameters were not supplied. The type parameters must be explicitly"
-                " specified in the instantiation so that the type data can be made"
-                " available at runtime.\n\n"
-                "For example:\n\n"
-                "foo: Foo[int] = Foo()  #wrong\n"
-                "foo = Foo[T]()  #wrong\n"
-                "foo = Foo[int]()  # correct"
+                f"Cannot instantiate ReifiedGeneric {cls_narrowed.__name__!r} because"
+                " its type parameters were not supplied. The type parameters must be"
+                " explicitly specified in the instantiation so that the type data can"
+                " be made available at runtime.\n\nFor example:\n\nfoo: Foo[int] ="
+                " Foo()  #wrong\nfoo = Foo[T]()  #wrong\nfoo = Foo[int]()  # correct"
             )
-        cls._check_generics_reified()
-        return cast(T, super().__call__(*args, **kwargs))
+        cls_narrowed._check_generics_reified()
+        # see comment about cls above
+        return cast(T, super().__call__(*args, **kwargs))  # type:ignore[misc]
 
 
 GenericItems: TypeAlias = Union[type, TypeVar, Tuple[Union[type, TypeVar], ...]]
 """The ``items`` argument passed to ``__class_getitem__`` when creating or using a ``Generic``"""
 
 
-class ReifiedGeneric(
-    Generic[T],
-    # mypy doesn't support metaclasses with generics but for pyright we need to correctly type the `__call__`
-    # return type, otherwise all instances of `ReifiedGeneric` will have the wrong type
-    metaclass=_ReifiedGenericMetaclass[Self],  # type:ignore[misc]
-):
+class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     """A ``Generic`` where the type parameters are available at runtime and is
     usable in ``isinstance`` and ``issubclass`` checks.
 
@@ -316,7 +311,9 @@ class ReifiedGeneric(
         orig_type_vars = (
             cls.__type_vars__
             if hasattr(cls, "__type_vars__")
-            else cast(Tuple[TypeVar, ...], cls.__parameters__)
+            else cast(
+                Tuple[TypeVar, ...], cls.__parameters__  # type:ignore[attr-defined]
+            )
         )
 
         # add any reified generics from the superclass if there is one

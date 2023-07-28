@@ -34,6 +34,7 @@ combine_as_imports = true
 [tool.black]
 target-version = ["py37"]
 preview = true
+skip-magic-trailing-comma = true
 
 [tool.pylint.MASTER]
 fail-on = "I"
