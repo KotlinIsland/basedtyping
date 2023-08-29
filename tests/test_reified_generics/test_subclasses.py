@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, Tuple, TypeVar
 
 from pytest import raises

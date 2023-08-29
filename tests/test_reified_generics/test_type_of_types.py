@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Tuple, Type
 
 if TYPE_CHECKING:
@@ -16,15 +18,13 @@ if TYPE_CHECKING:
     from basedtyping.typetime_only import assert_type
 
     def test_instance() -> None:
-        """may be possible once https://github.com/KotlinIsland/basedmypy/issues/24 is resolved
-        """
+        """may be possible once https://github.com/KotlinIsland/basedmypy/issues/24 is resolved"""
         assert_type[Tuple[Type[int], Type[str]]](
             Reified[int, str]().__reified_generics__  # type: ignore[arg-type]
         )
 
     def from_class() -> None:
-        """may be possible once https://github.com/python/mypy/issues/11672 is resolved
-        """
+        """may be possible once https://github.com/python/mypy/issues/11672 is resolved"""
         assert_type[Tuple[Type[int], Type[str]]](
             Reified[int, str].__reified_generics__  # type: ignore[arg-type]
         )

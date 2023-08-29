@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Generic, List, Tuple, TypeVar
 
 from pytest import raises
-from typing_extensions import assert_type
 
 from basedtyping import NotReifiedError, ReifiedGeneric, T
 
@@ -68,7 +69,6 @@ def test_concrete_subclass() -> None:
     class SubASpecified(A[int]):
         pass
 
-    print(SubASpecified.mro())
     assert issubclass(SubASpecified, A[int])  # type: ignore[misc]
     assert not issubclass(SubASpecified, A[str])  # type: ignore[misc]
 
@@ -87,6 +87,8 @@ def test_none_type() -> None:
 
 if TYPE_CHECKING:
     # this is just a type-time test, not a real life pytest test. it's only run by mypy
+    from typing_extensions import assert_type
+
     def test_reified_generic_subtype_self():
         """make sure that the generic in the metaclass doesn't break instance types, and that
         the `Self` type works properly on the metaclass"""

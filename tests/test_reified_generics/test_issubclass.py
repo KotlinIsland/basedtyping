@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from typing import Tuple, TypeVar, Union
 
 from pytest import mark
 
-from basedtyping import ReifiedGeneric, T, T_co
+from basedtyping import ReifiedGeneric, T, out_T
 
 T2 = TypeVar("T2")
 
@@ -34,7 +36,7 @@ def test_without_generics_first_arg_false() -> None:
 @mark.xfail(reason="not implemented")
 def test_without_generics_first_arg_true() -> None:
     # https://github.com/KotlinIsland/basedtyping/issues/70
-    class Foo(ReifiedGeneric[T_co]):  # type:ignore[type-var]
+    class Foo(ReifiedGeneric[out_T]):  # type:ignore[type-var]
         pass
 
     assert not issubclass(Foo, Foo[object])  # type: ignore[misc]
@@ -54,7 +56,7 @@ def test_without_generics_both() -> None:
 
 @mark.xfail(reason="not implemented")
 def test_without_generics_same_as_bound() -> None:
-    _T = TypeVar("_T", bound=Union[int, str])
+    _T = TypeVar("_T", bound=Union[int, str])  # noqa: PYI018
 
     class Foo(ReifiedGeneric[T]):
         pass

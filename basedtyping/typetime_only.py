@@ -2,6 +2,7 @@
 
 This is the similar to the ``_typeshed`` module.
 """
+from __future__ import annotations
 
 from typing import TYPE_CHECKING, Generic
 

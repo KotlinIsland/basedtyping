@@ -1,4 +1,6 @@
 """mypy should catch these, but it doesn't due to https://github.com/python/mypy/issues/7084"""
+from __future__ import annotations
+
 from pytest import fixture, raises
 
 from basedtyping import NotReifiedError, ReifiedGeneric, T
