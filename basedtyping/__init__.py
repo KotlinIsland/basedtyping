@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Final,
     ForwardRef,
     Generic,
     NoReturn,
@@ -18,7 +19,15 @@ from typing import (
     cast,
 )
 
-from typing_extensions import Final, TypeAlias, TypeGuard
+import typing_extensions
+from typing_extensions import (
+    Never,
+    ParamSpec,
+    TypeAlias,
+    TypeGuard,
+    TypeVarTuple,
+    override,
+)
 
 from basedtyping.runtime_only import OldUnionType
 
@@ -30,6 +39,23 @@ if not TYPE_CHECKING:
         from typing import _collect_parameters
     else:
         from typing import _collect_type_vars as _collect_parameters
+
+__all__ = (
+    "Function",
+    "T",
+    "in_T",
+    "out_T",
+    "Ts",
+    "P",
+    "Fn",
+    "ReifiedGenericError",
+    "NotReifiedError",
+    "ReifiedGeneric",
+    "NotEnoughTypeParametersError",
+    "issubform",
+    "Untyped",
+    "Intersection",
+)
 
 if not TYPE_CHECKING:
 
@@ -58,15 +84,12 @@ else:
     Function = Callable
 
 # Unlike the generics in other modules, these are meant to be imported to save you from the boilerplate
-
 T = TypeVar("T")
-T_co = TypeVar("T_co", covariant=True)
-T_contra = TypeVar("T_contra", contravariant=True)
+in_T = TypeVar("in_T", contravariant=True)
+out_T = TypeVar("out_T", covariant=True)
+Ts = TypeVarTuple("Ts")
+P = ParamSpec("P")
 Fn = TypeVar("Fn", bound=Function)
-
-
-Never = NoReturn
-"""A value that can never exist. This is the narrowest possible form."""
 
 
 def _type_convert(arg: object) -> object:
@@ -112,13 +135,13 @@ class NotEnoughTypeParametersError(ReifiedGenericError):
 class _ReifiedGenericMetaclass(type):
     # these should really only be on the class not the metaclass, but since it needs to be accessible from both instances and the class itself, its duplicated here
 
-    __reified_generics__: Tuple[type, ...]
+    __reified_generics__: tuple[type, ...]
     """should be a generic but cant due to https://github.com/python/mypy/issues/11672"""
 
-    __type_vars__: Tuple[TypeVar, ...]
+    __type_vars__: tuple[TypeVar, ...]
     """``TypeVar``s that have not yet been reified. so this Tuple should always be empty by the time the ``ReifiedGeneric`` is instanciated"""
 
-    _orig_type_vars: Tuple[TypeVar, ...]
+    _orig_type_vars: tuple[TypeVar, ...]
     """used internally to check the ``__type_vars__`` on the current ``ReifiedGeneric`` against the original one it was copied from
     in ``ReifiedGeneric.__class_getitem__``"""
 
@@ -126,14 +149,13 @@ class _ReifiedGenericMetaclass(type):
     """Used internally for ``isinstance`` and ``issubclass`` checks, ``True`` when the class can currenty be used in said checks without generics in them"""
 
     def _orig_class(cls) -> _ReifiedGenericMetaclass:
-        """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from
-        """
+        """Gets the original class that ``ReifiedGeneric.__class_getitem__`` copied from"""
         result = cls.__bases__[0]
         if result is ReifiedGeneric:
             return cls
         return result  # type: ignore[return-value]
 
-    def _type_var_check(cls, args: Tuple[type, ...]) -> bool:
+    def _type_var_check(cls, args: tuple[type, ...]) -> bool:
         if not cls._generics_are_reified():
             if cls._has_non_reified_type_vars():
                 cls._raise_generics_not_reified()
@@ -187,11 +209,10 @@ class _ReifiedGenericMetaclass(type):
         ) and type.__subclasscheck__(
             cls._orig_class(),
             # https://github.com/python/mypy/issues/11671
-            cast(  # pylint:disable=protected-access
-                _ReifiedGenericMetaclass, subclass
-            )._orig_class(),
+            cast(_ReifiedGenericMetaclass, subclass)._orig_class(),
         )
 
+    @override
     def __subclasscheck__(cls, subclass: object) -> bool:
         if not cls._is_subclass(subclass):
             return False
@@ -211,6 +232,7 @@ class _ReifiedGenericMetaclass(type):
         subclass._check_generics_reified()
         return cls._type_var_check(subclass.__reified_generics__)
 
+    @override
     def __instancecheck__(cls, instance: object) -> bool:
         if not cls._is_subclass(type(instance)):
             return False
@@ -221,6 +243,7 @@ class _ReifiedGenericMetaclass(type):
         )
 
     # need the generic here for pyright. see https://github.com/microsoft/pyright/issues/5488
+    @override
     def __call__(cls: type[T], *args: object, **kwargs: object) -> T:
         """A placeholder ``__call__`` method that gets called when the class is
         instantiated directly, instead of first supplying the type parameters.
@@ -280,15 +303,15 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     is tracked [here](https://github.com/KotlinIsland/basedmypy/issues/5)
     """
 
-    __reified_generics__: Tuple[type, ...]
+    __reified_generics__: tuple[type, ...]
     """Should be a generic but cant due to https://github.com/KotlinIsland/basedmypy/issues/142"""
-    __type_vars__: Tuple[TypeVar, ...]
+    __type_vars__: tuple[TypeVar, ...]
     """``TypeVar``\\s that have not yet been reified. so this Tuple should always be empty by the time the ``ReifiedGeneric`` is instantiated"""
 
     @_tp_cache  # type: ignore[name-defined, misc]
     def __class_getitem__(  # type: ignore[no-any-decorated]
         cls, item: GenericItems
-    ) -> Type[ReifiedGeneric[T]]:
+    ) -> type[ReifiedGeneric[T]]:
         # when defining the generic (ie. `class Foo(ReifiedGeneric[T]):`) we want the normal behavior
         if cls is ReifiedGeneric:
             # https://github.com/KotlinIsland/basedtypeshed/issues/7
@@ -325,7 +348,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
                 "Incorrect number of type parameters specified. expected length:"
                 f" {expected_length}, actual length {actual_length}"
             )
-        ReifiedGenericCopy: Type[ReifiedGeneric[T]] = type(
+        ReifiedGenericCopy: type[ReifiedGeneric[T]] = type(
             cls.__name__,
             (
                 cls,  # make the copied class extend the original so normal instance checks work
@@ -340,12 +363,11 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             },
         )
         # can't set it in the dict above otherwise __init_subclass__ overwrites it
-        ReifiedGenericCopy._can_do_instance_and_subclass_checks_without_generics = (  # pylint:disable=protected-access
-            False
-        )
+        ReifiedGenericCopy._can_do_instance_and_subclass_checks_without_generics = False
         return ReifiedGenericCopy
 
-    def __init_subclass__(cls) -> None:  # pylint:disable=arguments-differ
+    @override
+    def __init_subclass__(cls) -> None:
         cls._can_do_instance_and_subclass_checks_without_generics = True
         super().__init_subclass__()
 
@@ -354,10 +376,10 @@ if sys.version_info >= (3, 10):
     from types import UnionType
 
     _UnionTypes = (UnionType, OldUnionType)
-    _Forms: TypeAlias = type | UnionType | _SpecialForm  # type: ignore[unused-ignore, no-any-expr]
+    _Forms: TypeAlias = type | UnionType | _SpecialForm | typing_extensions._SpecialForm  # type: ignore[unused-ignore, no-any-expr]
 else:
     _UnionTypes = (OldUnionType,)
-    _Forms: TypeAlias = Union[type, _SpecialForm]
+    _Forms: TypeAlias = Union[type, _SpecialForm, typing_extensions._SpecialForm]
 
 
 # TODO: make this work with any "form", not just unions
@@ -384,17 +406,13 @@ def issubform(form: _Forms, forminfo: _Forms) -> bool:
     if isinstance(form, _UnionTypes):
         # Morally, form is an instance of "UnionType | _UnionGenericAlias"
         #  But _UnionGenericAlias doesn't have any representation at type time.
-        for t in cast(Sequence[type], form.__args__):  # type: ignore[union-attr]
-            if not issubform(t, forminfo):
-                return False
-        return True
+        return all(
+            issubform(t, forminfo) for t in cast(Sequence[type], form.__args__)  # type: ignore[union-attr]
+        )
     if sys.version_info < (3, 10) and isinstance(forminfo, OldUnionType):
         # Morally, forminfo is an instance of "_UnionGenericAlias"
         #  But _UnionGenericAlias doesn't have any representation at type time.
-        for t in cast(Sequence[type], forminfo.__args__):  # type: ignore[unused-ignore, union-attr]
-            if issubform(form, t):
-                return True
-        return False
+        return any(issubform(form, t) for t in cast(Sequence[type], forminfo.__args__))  # type: ignore[union-attr]
     if form is Never:
         return True
     if forminfo is Never:
@@ -406,26 +424,25 @@ if TYPE_CHECKING:
     # We pretend that it's an alias to Any so that it's slightly more compatible with
     #  other tools, basedmypy will still utilize the SpecialForm over the TypeAlias.
     Untyped: TypeAlias = Any  # type: ignore[no-any-explicit]
+elif sys.version_info >= (3, 9):
+
+    @_SpecialForm  # `_SpecialForm`s init isn't typed
+    def Untyped(self: _SpecialForm, parameters: object) -> NoReturn:  # noqa: ARG001
+        """Special type indicating that something isn't typed.
+
+        This is more specialized than ``Any`` and can help with gradually typing modules.
+        """
+        raise TypeError(f"{self} is not subscriptable")
+
 else:
-    if sys.version_info >= (3, 9):
-
-        @_SpecialForm  # `_SpecialForm`s init isn't typed
-        def Untyped(self: _SpecialForm, parameters: object) -> NoReturn:
-            """Special type indicating that something isn't typed.
-
-            This is more specialized than ``Any`` and can help with gradually typing modules.
-            """
-            raise TypeError(f"{self} is not subscriptable")
-
-    else:
-        # old version had the doc argument
-        Untyped: Final = _BasedSpecialForm(  # pylint:disable=unexpected-keyword-arg
-            "Untyped",
-            doc=(
-                "Special type indicating that something isn't typed.\nThis is more"
-                " specialized than ``Any`` and can help with gradually typing modules."
-            ),
-        )
+    # old version had the doc argument
+    Untyped: Final = _BasedSpecialForm(
+        "Untyped",
+        doc=(
+            "Special type indicating that something isn't typed.\nThis is more"
+            " specialized than ``Any`` and can help with gradually typing modules."
+        ),
+    )
 
 if not TYPE_CHECKING:
 
@@ -445,10 +462,7 @@ if not TYPE_CHECKING:
             return self.__subclasscheck__(type(obj))
 
         def __subclasscheck__(self, cls):
-            for arg in self.__args__:
-                if issubclass(cls, arg):
-                    return True
-            return False
+            return any(issubclass(cls, arg) for arg in self.__args__)
 
         def __reduce__(self):
             func, (_, args) = super().__reduce__()
@@ -499,8 +513,6 @@ if not TYPE_CHECKING:
 
     else:
         # old version had the doc argument
-        Intersection = _BasedSpecialForm(  # pylint:disable=unexpected-keyword-arg
-            "Intersection", doc=""
-        )
+        Intersection = _BasedSpecialForm("Intersection", doc="")
 else:
     Intersection: _SpecialForm

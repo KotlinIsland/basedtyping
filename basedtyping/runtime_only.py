@@ -3,19 +3,13 @@ and are only intended for runtime checks, for example ``isinstance``.
 
 This is the similar to the ``types`` module.
 """
-import sys
-from typing import Type, Union
+from __future__ import annotations
 
-from typing_extensions import Final as Final_ext
+from typing import Final, Final as Final_ext, Literal, Union
 
-if sys.version_info >= (3, 9):
-    # Despite the fact that Literal is in 3.8, it is just a _GenericAlias,
-    #  so would be broken
-    from typing import Final, Literal
-
-    LiteralType: Final = type(Literal[1])
-    """A type that can be used to check if type hints are a ``typing.Literal`` instance"""
+LiteralType: Final = type(Literal[1])
+"""A type that can be used to check if type hints are a ``typing.Literal`` instance"""
 
 # TODO: this is type[object], we need it to be 'SpecialForm[Union]' (or something)
-OldUnionType: Final_ext[Type[object]] = type(Union[str, int])
+OldUnionType: Final_ext[type[object]] = type(Union[str, int])
 """A type that can be used to check if type hints are a ``typing.Union`` instance."""

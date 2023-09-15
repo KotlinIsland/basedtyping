@@ -24,20 +24,9 @@
     "source.fixAll": true,
     "source.organizeImports": true
   },
-  "python.linting.flake8CategorySeverity.W": "Error",
   "files.eol": "\n",
   "python.testing.pytestEnabled": true,
   "python.analysis.typeCheckingMode": "off",
-  "python.linting.flake8Enabled": true,
-  "pylint.severity": {
-    "convention": "Warning",
-    "error": "Error",
-    "fatal": "Error",
-    "refactor": "Warning",
-    "warning": "Warning",
-    "info": "Warning"
-  },
-  "pylint.importStrategy": "fromEnvironment",
   "yaml.schemas": {
     "https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json": ".github/workflows/*.yaml"
   },

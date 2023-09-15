@@ -3,14 +3,24 @@ name: check
 on: push
 
 env:
-  POETRY_VERSION: "1.2.2"
+  POETRY_VERSION: "1.6.1"
 
 jobs:
   check:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        include:
+          - python-version: "3.8"
+            usable-python-version: "3.8"
+          - python-version: "3.9"
+            usable-python-version: "3.9"
+          - python-version: "3.10"
+            usable-python-version: "3.10"
+          - python-version: "3.11"
+            usable-python-version: "3.11"
+          - python-version: "3.12-dev"
+            usable-python-version: "3.12"
 
     steps:
       - uses: actions/checkout@v2
@@ -32,7 +42,7 @@ jobs:
         if: steps.cache.outputs.cache-hit == 'true'
         run: timeout 10s poetry run pip --version || rm -rf .venv
       - run: poetry install
-      - run: poetry run mypy -p basedtyping -p tests --python-version ${{ matrix.python-version }}
+      - run: poetry run mypy -p basedtyping -p tests --python-version ${{ matrix.usable-python-version }}
       - run: poetry run pytest tests/
 
   lint:
@@ -58,5 +68,4 @@ jobs:
         run: timeout 10s poetry run pip --version || rm -rf .venv
       - run: poetry install
       - run: poetry run black --check --diff .
-      - run: poetry run isort --check --diff .
-      - run: poetry run flake8 .
+      - run: poetry run ruff .

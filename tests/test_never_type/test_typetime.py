@@ -1,9 +1,12 @@
-from typing import TYPE_CHECKING, NoReturn, Type, cast
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, NoReturn, cast
 
 if TYPE_CHECKING:
     # these are just type-time tests, not real life pytest tests. they are only run by mypy
 
-    from basedtyping import Never
+    from typing_extensions import Never
+
     from basedtyping.typetime_only import assert_type
 
     def test_never_equals_noreturn() -> None:
@@ -30,4 +33,4 @@ if TYPE_CHECKING:
 
         So current implementation resembles an xfail.
         """
-        _t: Type[Never]
+        _t: type[Never]
