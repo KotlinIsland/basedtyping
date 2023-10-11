@@ -1,6 +1,7 @@
 """The main ``basedtyping`` module. the types/functions defined here can be used at both type-time and at runtime."""
 from __future__ import annotations
 
+import contextlib
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -20,16 +21,23 @@ from typing import (
 )
 
 import typing_extensions
-from typing_extensions import (
-    Never,
-    ParamSpec,
-    TypeAlias,
-    TypeGuard,
-    TypeVarTuple,
-    override,
-)
+from typing_extensions import Never, ParamSpec, TypeAlias, TypeGuard, TypeVarTuple
 
 from basedtyping.runtime_only import OldUnionType
+
+if TYPE_CHECKING:
+    from typing_extensions import override
+else:
+
+    def override(arg, /):
+        # TODO: Remove when typing_extensions is >= 4.4
+        with contextlib.suppress(AttributeError, TypeError):
+            # Skip the attribute silently if it is not writable.
+            # AttributeError happens if the object has __slots__ or a
+            # read-only property, TypeError if it's a builtin class.
+            arg.__override__ = True
+        return arg
+
 
 if not TYPE_CHECKING:
     # TODO: remove the TYPE_CHECKING block once these are typed in basedtypeshed

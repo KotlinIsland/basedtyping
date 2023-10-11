@@ -5,11 +5,11 @@ authors = [
 ]
 description = "Utilities for basedmypy"
 name = "basedtyping"
-version = "0.1.0"
+version = "0.1.3"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-typing_extensions = "^4"
+typing_extensions = "^4.1"
 
 [tool.poetry.group.dev.dependencies]
 basedmypy = "^2"
