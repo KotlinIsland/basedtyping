@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Dict,
     Final,
     ForwardRef,
     Generic,
@@ -135,7 +136,7 @@ class NotEnoughTypeParametersError(ReifiedGenericError):
 class _ReifiedGenericMetaclass(type):
     # these should really only be on the class not the metaclass, but since it needs to be accessible from both instances and the class itself, its duplicated here
 
-    __reified_generics__: tuple[type, ...]
+    __reified_generics__: ReifiedGenerics
     """should be a generic but cant due to https://github.com/python/mypy/issues/11672"""
 
     __type_vars__: tuple[TypeVar, ...]
@@ -155,7 +156,7 @@ class _ReifiedGenericMetaclass(type):
             return cls
         return result  # type: ignore[return-value]
 
-    def _type_var_check(cls, args: tuple[type, ...]) -> bool:
+    def _type_var_check(cls, args: ReifiedGenerics) -> bool:
         if not cls._generics_are_reified():
             if cls._has_non_reified_type_vars():
                 cls._raise_generics_not_reified()
@@ -169,13 +170,14 @@ class _ReifiedGenericMetaclass(type):
                 cls._orig_class().__parameters__,  # type: ignore[attr-defined]
             ),
             cls.__reified_generics__,
-            args,
+            args.values(),
         ):
             if parameter.__contravariant__:
-                if not issubform(self_arg, subclass_arg):
+                # TODO: this is probably unsafe, what happens when the arg is a string/forwardref or something?
+                if not issubform(self_arg, subclass_arg):  # type:ignore[arg-type]
                     return False
             elif parameter.__covariant__:
-                if not issubform(subclass_arg, self_arg):
+                if not issubform(subclass_arg, self_arg):  # type:ignore[arg-type]
                     return False
             elif subclass_arg != self_arg:
                 return False
@@ -270,6 +272,13 @@ class _ReifiedGenericMetaclass(type):
 GenericItems: TypeAlias = Union[type, TypeVar, Tuple[Union[type, TypeVar], ...]]
 """The ``items`` argument passed to ``__class_getitem__`` when creating or using a ``Generic``"""
 
+ReifiedGenerics = Dict[TypeVar, object]
+"""the type of `ReifiedGeneric.__reified_generics__`
+
+Should be a generic but cant due to https://github.com/KotlinIsland/basedmypy/issues/142
+    
+ideally the value type would be `type`, but there are types like special forms that aren't actually `type`s"""
+
 
 class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     """A ``Generic`` where the type parameters are available at runtime and is
@@ -303,8 +312,8 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     is tracked [here](https://github.com/KotlinIsland/basedmypy/issues/5)
     """
 
-    __reified_generics__: tuple[type, ...]
-    """Should be a generic but cant due to https://github.com/KotlinIsland/basedmypy/issues/142"""
+    __reified_generics__: ReifiedGenerics
+
     __type_vars__: tuple[TypeVar, ...]
     """``TypeVar``\\s that have not yet been reified. so this Tuple should always be empty by the time the ``ReifiedGeneric`` is instantiated"""
 
@@ -320,14 +329,9 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
         items = item if isinstance(item, tuple) else (item,)
 
         # if we're subtyping a class that already has reified generics:
-        superclass_reified_generics = tuple(
-            generic
-            for generic in (
-                cls.__reified_generics__ if hasattr(cls, "__reified_generics__") else ()
-            )
-            # TODO: investigate this unreachable, redundant-expr
-            if not isinstance(generic, TypeVar)  # type: ignore[unused-ignore, unreachable, redundant-expr, no-any-expr]
-        )
+        reified_generics = cast(
+            ReifiedGenerics, getattr(cls, "__reified_generics__", {})
+        ).copy()
 
         # normal generics use __parameters__, we use __type_vars__ because the Generic base class deletes properties
         # named __parameters__ when copying to a new class
@@ -338,16 +342,18 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
                 Tuple[TypeVar, ...], cls.__parameters__  # type:ignore[attr-defined]
             )
         )
-
-        # add any reified generics from the superclass if there is one
-        items = superclass_reified_generics + items
         expected_length = len(orig_type_vars)
-        actual_length = len(items) - len(superclass_reified_generics)
-        if expected_length != len(items) - len(superclass_reified_generics):
+        actual_length = len(items) - len(reified_generics)
+        if len(items) != len(orig_type_vars):
             raise NotEnoughTypeParametersError(
                 "Incorrect number of type parameters specified. expected length:"
                 f" {expected_length}, actual length {actual_length}"
             )
+
+        for type_var, reified_type in zip(orig_type_vars, items):
+            if isinstance(reified_type, type):
+                reified_generics[type_var] = _type_convert(reified_type)
+
         ReifiedGenericCopy: type[ReifiedGeneric[T]] = type(
             cls.__name__,
             (
@@ -355,9 +361,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
             ),
             # TODO: proper type
             {  # type: ignore[no-any-expr]
-                "__reified_generics__": tuple(  # type: ignore[no-any-expr]
-                    _type_convert(t) for t in items  # type: ignore[unused-ignore, no-any-expr]
-                ),
+                "__reified_generics__": reified_generics,
                 "_orig_type_vars": orig_type_vars,
                 "__type_vars__": _collect_parameters(items),  # type: ignore[name-defined]
             },
