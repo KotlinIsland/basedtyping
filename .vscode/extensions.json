@@ -4,7 +4,6 @@
     "ms-python.vscode-pylance",
     "ms-python.black-formatter",
     "charliermarsh.ruff",
-    "eamodio.gitlens",
     "mhutchie.git-graph",
     "ninoseki.vscode-pylens",
     "tamasfe.even-better-toml",
