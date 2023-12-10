@@ -3,6 +3,7 @@ and are only intended for runtime checks, for example ``isinstance``.
 
 This is the similar to the ``types`` module.
 """
+
 from __future__ import annotations
 
 from typing import Final, Final as Final_ext, Literal, Union
