@@ -149,18 +149,8 @@ def _eval_type(t, globalns, localns, recursive_guard=frozenset()):
     return t
 
 
-class ForwardRef(_Final, _root=True):
+class BasedForwardRef(_Final, _root=True):
     """Internal wrapper to hold a forward reference."""
-
-    __slots__ = (
-        "__forward_arg__",
-        "__forward_code__",
-        "__forward_evaluated__",
-        "__forward_value__",
-        "__forward_is_argument__",
-        "__forward_is_class__",
-        "__forward_module__",
-    )
 
     def __init__(self, arg, is_argument=True, module=None, *, is_class=False):
         if isinstance(arg, str):
@@ -181,9 +171,6 @@ class ForwardRef(_Final, _root=True):
             code = compile(arg_to_compile, "<string>", "eval")
         except SyntaxError:
             raise SyntaxError(f"Forward reference must be an expression -- got {arg!r}")
-        except TypeError as t:
-            print(arg_to_compile.body, t)
-            ...
         self.__forward_arg__ = arg
         self.__forward_code__ = code
         self.__forward_evaluated__ = False
@@ -225,35 +212,6 @@ class ForwardRef(_Final, _root=True):
             )
             self.__forward_evaluated__ = True
         return self.__forward_value__
-
-    def __eq__(self, other):
-        if not isinstance(other, ForwardRef):
-            return NotImplemented
-        if self.__forward_evaluated__ and other.__forward_evaluated__:
-            return (
-                self.__forward_arg__ == other.__forward_arg__
-                and self.__forward_value__ == other.__forward_value__
-            )
-        return (
-            self.__forward_arg__ == other.__forward_arg__
-            and self.__forward_module__ == other.__forward_module__
-        )
-
-    def __hash__(self):
-        return hash((self.__forward_arg__, self.__forward_module__))
-
-    def __or__(self, other):
-        return Union[self, other]
-
-    def __ror__(self, other):
-        return Union[other, self]
-
-    def __repr__(self):
-        if self.__forward_module__ is None:
-            module_repr = ""
-        else:
-            module_repr = f", module={self.__forward_module__!r}"
-        return f"ForwardRef({self.__forward_arg__!r}{module_repr})"
 
 
 class BasedTypeParser(NodeTransformer):
