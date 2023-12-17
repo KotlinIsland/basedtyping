@@ -22,8 +22,10 @@ from typing import (  # type: ignore[attr-defined]
     _tp_cache,
     _type_check,
     cast,
+    _alias,
 )
 
+import _collections_abc
 import typing_extensions
 from typing_extensions import Never, ParamSpec, Self, TypeAlias, TypeGuard, TypeVarTuple
 
@@ -556,3 +558,27 @@ TypeForm = _TypeFormForm(doc="""\
                             
                              reveal_type(f(int | str))  # int | str
                          """)
+
+# generic aliases
+if TYPE_CHECKING:
+    dict_keyiterator = _collections_abc.dict_keyiterator  # type: ignore[attr-defined]
+    dict_valueiterator = _collections_abc.dict_valueiterator  # type: ignore[attr-defined]
+    dict_itemiterator = _collections_abc.dict_itemiterator  # type: ignore[attr-defined]
+    list_iterator = _collections_abc.list_iterator  # type: ignore[attr-defined]
+    list_reverseiterator = _collections_abc.list_reverseiterator  # type: ignore[attr-defined]
+    set_iterator = _collections_abc.set_iterator  # type: ignore[attr-defined]
+    tuple_iterator = _collections_abc.tuple_iterator  # type: ignore[attr-defined]
+    dict_keys = _collections_abc.dict_keys
+    dict_values = _collections_abc.dict_values
+    dict_items = _collections_abc.dict_items
+else:
+    dict_keyiterator = _alias(_collections_abc.dict_keyiterator, 2)
+    dict_valueiterator = _alias(_collections_abc.dict_valueiterator, 2)
+    dict_itemiterator = _alias(_collections_abc.dict_itemiterator, 2)
+    list_iterator = _alias(_collections_abc.list_iterator, 1)
+    list_reverseiterator = _alias(_collections_abc.list_reverseiterator, 1)
+    set_iterator = _alias(_collections_abc.set_iterator, 1)
+    tuple_iterator = _alias(_collections_abc.tuple_iterator, -1)
+    dict_keys = _alias(_collections_abc.dict_keys, 2)
+    dict_values = _alias(_collections_abc.dict_values, 2)
+    dict_items = _alias(_collections_abc.dict_items, 2)
