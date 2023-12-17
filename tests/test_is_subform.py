@@ -6,12 +6,12 @@ from typing import Union
 from basedtyping import issubform
 
 
-def test_normal() -> None:
+def test_normal():
     if sys.version_info >= (3, 10):
         assert issubform(int, int | str)
 
 
-def test_union_first_arg() -> None:
+def test_union_first_arg():
     if sys.version_info >= (3, 10):
         assert not issubform(int | str, int)
         assert issubform(int | str, object)
@@ -19,7 +19,7 @@ def test_union_first_arg() -> None:
         assert issubform(int | str, Union[int, str])  # type: ignore[unused-ignore, arg-type]
 
 
-def test_old_union() -> None:
+def test_old_union():
     # TODO: fix the mypy error
     assert not issubform(Union[int, str], int)  # type: ignore[arg-type]
     assert issubform(Union[int, str], object)  # type: ignore[arg-type]

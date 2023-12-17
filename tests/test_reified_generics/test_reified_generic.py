@@ -27,7 +27,7 @@ class Normal(Generic[T, T2]):
 not_reified_parameter_error_match = "TypeVars cannot be used"
 
 
-def test_class_args_and_params_class() -> None:
+def test_class_args_and_params_class():
     assert (
         Normal[int, str].__args__  # type: ignore[attr-defined]
         == Reified[int, str].__reified_generics__
@@ -38,31 +38,31 @@ def test_class_args_and_params_class() -> None:
     )
 
 
-def test_class_args_and_params_instance() -> None:
+def test_class_args_and_params_instance():
     assert Reified[int, str]().__reified_generics__ == (int, str)
     assert not Reified[int, str]().__type_vars__
 
 
-def test_reified_list() -> None:
+def test_reified_list():
     it = ReifiedList[int]([1, 2, 3])
     assert it.__reified_generics__ == (int,)
     assert not it.__type_vars__
 
 
-def test_reified_generic_without_generic_alias() -> None:
+def test_reified_generic_without_generic_alias():
     with raises(NotReifiedError, match="Cannot instantiate ReifiedGeneric "):
         Reified()
 
 
-def test_reified_in_init() -> None:
+def test_reified_in_init():
     class Foo(ReifiedGeneric[T]):
-        def __init__(self) -> None:
+        def __init__(self):
             assert self.__reified_generics__ == (int,)
 
     Foo[int]()
 
 
-def test_concrete_subclass() -> None:
+def test_concrete_subclass():
     class A(ReifiedGeneric[T]):
         pass
 
@@ -77,7 +77,7 @@ def test_concrete_subclass() -> None:
     assert not isinstance(s, A[str])  # type: ignore[misc]
 
 
-def test_none_type() -> None:
+def test_none_type():
     # TODO: is this mypy error correct?
     assert Reified[None, None].__reified_generics__ == (
         NoneType,

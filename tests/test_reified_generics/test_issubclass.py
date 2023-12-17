@@ -16,12 +16,12 @@ class Reified(ReifiedGeneric[Tuple[T, T2]]):
 # https://github.com/KotlinIsland/basedmypy/issues/5
 
 
-def test_issubclass() -> None:
+def test_issubclass():
     assert issubclass(Reified[int, str], Reified[int, str])  # type: ignore[misc]
     assert not issubclass(Reified[int, str], Reified[int, int])  # type: ignore[misc]
 
 
-def test_wrong_class_same_generics() -> None:
+def test_wrong_class_same_generics():
     class Reified2(ReifiedGeneric[Tuple[T, T2]]):
         pass
 
@@ -29,12 +29,12 @@ def test_wrong_class_same_generics() -> None:
 
 
 @mark.xfail(reason="not implemented")
-def test_without_generics_first_arg_false() -> None:
+def test_without_generics_first_arg_false():
     assert not issubclass(Reified, Reified[int, str])  # type: ignore[misc]
 
 
 @mark.xfail(reason="not implemented")
-def test_without_generics_first_arg_true() -> None:
+def test_without_generics_first_arg_true():
     # https://github.com/KotlinIsland/basedtyping/issues/70
     class Foo(ReifiedGeneric[out_T]):  # type:ignore[type-var]
         pass
@@ -42,11 +42,11 @@ def test_without_generics_first_arg_true() -> None:
     assert not issubclass(Foo, Foo[object])  # type: ignore[misc]
 
 
-def test_without_generics_second_arg() -> None:
+def test_without_generics_second_arg():
     assert issubclass(Reified[int, str], Reified)
 
 
-def test_without_generics_both() -> None:
+def test_without_generics_both():
     class SubReified(Reified[T, T2]):
         pass
 
@@ -55,7 +55,7 @@ def test_without_generics_both() -> None:
 
 
 @mark.xfail(reason="not implemented")
-def test_without_generics_same_as_bound() -> None:
+def test_without_generics_same_as_bound():
     _T = TypeVar("_T", bound=Union[int, str])  # noqa: PYI018
 
     class Foo(ReifiedGeneric[T]):
@@ -65,7 +65,7 @@ def test_without_generics_same_as_bound() -> None:
     assert issubclass(Foo[Union[int, str]], Foo)
 
 
-def test_without_generics_one_specified() -> None:
+def test_without_generics_one_specified():
     class SubReified(Reified[int, T2]):
         pass
 

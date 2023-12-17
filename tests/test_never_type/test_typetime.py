@@ -9,22 +9,22 @@ if TYPE_CHECKING:
 
     from basedtyping.typetime_only import assert_type
 
-    def test_never_equals_noreturn() -> None:
+    def test_never_equals_noreturn():
         # TODO: better way to check if types are equal
         assert_type[NoReturn](cast(Never, 1))
         assert_type[Never](cast(NoReturn, 1))
 
-    def test_valid_type_hint() -> None:
+    def test_valid_type_hint():
         _never: Never
 
-    def test_cant_assign_to_never() -> None:
+    def test_cant_assign_to_never():
         _never: Never = 1  # type: ignore[assignment]
 
-    def test_cant_subtype() -> None:
+    def test_cant_subtype():
         class _A(Never):  # type: ignore[misc]
             ...
 
-    def test_type_never() -> None:
+    def test_type_never():
         """``type[Never]`` is invalid as ``Never`` is not a ``type``.
 
         Should actually be:
