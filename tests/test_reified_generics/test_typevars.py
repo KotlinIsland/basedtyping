@@ -16,31 +16,31 @@ def _value() -> int:
     return 1
 
 
-def test_instantiate(_value: T) -> None:
+def test_instantiate(_value: T):
     with raises(NotReifiedError):
         Reified[T]()
 
 
-def test_isinstance(_value: T) -> None:
+def test_isinstance(_value: T):
     with raises(NotReifiedError):
         isinstance(Reified[str](), Reified[T])  # type: ignore[misc]
 
 
-def test_unbound_instantiate(_value: T) -> None:
+def test_unbound_instantiate(_value: T):
     with raises(NotReifiedError):
         Reified[T]()
 
 
-def test_unbound_isinstance(_value: T) -> None:
+def test_unbound_isinstance(_value: T):
     with raises(NotReifiedError):
         isinstance(Reified[str](), Reified[T])  # type: ignore[misc]
 
 
-def test_issubclass_left(_value: T) -> None:
+def test_issubclass_left(_value: T):
     with raises(NotReifiedError):
         issubclass(Reified[T], Reified[int])  # type: ignore[misc]
 
 
-def test_issubclass_right(_value: T) -> None:
+def test_issubclass_right(_value: T):
     with raises(NotReifiedError):
         issubclass(Reified[int], Reified[T])  # type: ignore[misc]

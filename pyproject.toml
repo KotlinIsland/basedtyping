@@ -23,6 +23,8 @@ requires = ["poetry-core>=1.0.8"]
 
 [tool.mypy]
 python_version = 3.8
+# we can't use override until we bump the minimum typing_extensions or something
+disable_error_code = ["explicit-override"]
 
 [tool.black]
 target-version = ["py38"]

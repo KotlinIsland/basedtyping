@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import contextlib
 import sys
-from typing import (
+from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
     Callable,
@@ -17,33 +16,20 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    _GenericAlias,
+    _remove_dups_flatten,
     _SpecialForm,
+    _tp_cache,
+    _type_check,
     cast,
 )
 
 import typing_extensions
-from typing_extensions import Never, ParamSpec, TypeAlias, TypeGuard, TypeVarTuple
+from typing_extensions import Never, ParamSpec, Self, TypeAlias, TypeGuard, TypeVarTuple
 
 from basedtyping.runtime_only import OldUnionType
 
-if TYPE_CHECKING:
-    from typing_extensions import override
-else:
-
-    def override(arg, /):
-        # TODO: Remove when typing_extensions is >= 4.4
-        with contextlib.suppress(AttributeError, TypeError):
-            # Skip the attribute silently if it is not writable.
-            # AttributeError happens if the object has __slots__ or a
-            # read-only property, TypeError if it's a builtin class.
-            arg.__override__ = True
-        return arg
-
-
 if not TYPE_CHECKING:
-    # TODO: remove the TYPE_CHECKING block once these are typed in basedtypeshed
-    from typing import _GenericAlias, _remove_dups_flatten, _tp_cache, _type_check
-
     if sys.version_info >= (3, 11):
         from typing import _collect_parameters
     else:
@@ -64,20 +50,47 @@ __all__ = (
     "issubform",
     "Untyped",
     "Intersection",
+    "TypeForm",
 )
 
-if not TYPE_CHECKING:
+if TYPE_CHECKING:
+    _tp_cache_typed: Callable[[T], T]
+else:
+    _tp_cache_typed = _tp_cache
 
-    class _BasedSpecialForm(_SpecialForm, _root=True):
-        def __repr__(self):
-            return "basedtyping." + self._name
 
-        if sys.version_info < (3, 9):
+class _BasedSpecialForm(_SpecialForm, _root=True):  # type: ignore[misc]
+    _name: str
 
-            def __getitem__(self, item):
-                if self._name == "Intersection":
-                    return _IntersectionGenericAlias(self, item)
-                return None
+    def __init_subclass__(cls, _root=False):  # noqa: FBT002
+        super().__init_subclass__(_root=_root)  # type: ignore[call-arg]
+
+    def __init__(self, *args: object, **kwargs: object):
+        self.alias = kwargs.pop("alias", _BasedGenericAlias)
+        super().__init__(*args, **kwargs)
+
+    def __repr__(self) -> str:
+        return "basedtyping." + self._name
+
+    def __and__(self, other: object) -> object:
+        return Intersection[self, other]
+
+    def __rand__(self, other: object) -> object:
+        return Intersection[other, self]
+
+    if sys.version_info < (3, 9):
+
+        @_tp_cache_typed
+        def __getitem__(self, item: object) -> object:
+            return self.alias(self, item)  # type: ignore[operator]
+
+
+class _BasedGenericAlias(_GenericAlias, _root=True):
+    def __and__(self, other: object) -> object:
+        return Intersection[self, other]
+
+    def __rand__(self, other: object) -> object:
+        return Intersection[other, self]
 
 
 if TYPE_CHECKING:
@@ -202,7 +215,7 @@ class _ReifiedGenericMetaclass(type):
             f" to instantiate a reified class: {cls._orig_type_vars}"
         )
 
-    def _check_generics_reified(cls) -> None:
+    def _check_generics_reified(cls):
         if not cls._generics_are_reified() or cls._has_non_reified_type_vars():
             cls._raise_generics_not_reified()
 
@@ -221,7 +234,6 @@ class _ReifiedGenericMetaclass(type):
             cast(_ReifiedGenericMetaclass, subclass)._orig_class(),
         )
 
-    @override
     def __subclasscheck__(cls, subclass: object) -> bool:
         if not cls._is_subclass(subclass):
             return False
@@ -241,7 +253,6 @@ class _ReifiedGenericMetaclass(type):
         subclass._check_generics_reified()
         return cls._type_var_check(subclass.__reified_generics__)
 
-    @override
     def __instancecheck__(cls, instance: object) -> bool:
         if not cls._is_subclass(type(instance)):
             return False
@@ -252,7 +263,6 @@ class _ReifiedGenericMetaclass(type):
         )
 
     # need the generic here for pyright. see https://github.com/microsoft/pyright/issues/5488
-    @override
     def __call__(cls: type[T], *args: object, **kwargs: object) -> T:
         """A placeholder ``__call__`` method that gets called when the class is
         instantiated directly, instead of first supplying the type parameters.
@@ -317,7 +327,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
     __type_vars__: tuple[TypeVar, ...]
     """``TypeVar``\\s that have not yet been reified. so this Tuple should always be empty by the time the ``ReifiedGeneric`` is instantiated"""
 
-    @_tp_cache  # type: ignore[name-defined, misc]
+    @_tp_cache  # type: ignore[no-any-expr, misc]
     def __class_getitem__(  # type: ignore[no-any-decorated]
         cls, item: GenericItems
     ) -> type[ReifiedGeneric[T]]:
@@ -375,8 +385,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
         ReifiedGenericCopy._can_do_instance_and_subclass_checks_without_generics = False
         return ReifiedGenericCopy
 
-    @override
-    def __init_subclass__(cls) -> None:
+    def __init_subclass__(cls):
         cls._can_do_instance_and_subclass_checks_without_generics = True
         super().__init_subclass__()
 
@@ -435,8 +444,10 @@ if TYPE_CHECKING:
     Untyped: TypeAlias = Any  # type: ignore[no-any-explicit]
 elif sys.version_info >= (3, 9):
 
-    @_SpecialForm  # `_SpecialForm`s init isn't typed
-    def Untyped(self: _SpecialForm, parameters: object) -> NoReturn:  # noqa: ARG001
+    @_BasedSpecialForm
+    def Untyped(
+        self: _BasedSpecialForm, parameters: object  # noqa: ARG001
+    ) -> NoReturn:
         """Special type indicating that something isn't typed.
 
         This is more specialized than ``Any`` and can help with gradually typing modules.
@@ -444,7 +455,6 @@ elif sys.version_info >= (3, 9):
         raise TypeError(f"{self} is not subscriptable")
 
 else:
-    # old version had the doc argument
     Untyped: Final = _BasedSpecialForm(
         "Untyped",
         doc=(
@@ -453,75 +463,96 @@ else:
         ),
     )
 
-if not TYPE_CHECKING:
 
-    class _IntersectionGenericAlias(_GenericAlias, _root=True):
-        def copy_with(self, args):
-            return Intersection[args]
+class _IntersectionGenericAlias(_BasedGenericAlias, _root=True):
+    def copy_with(self, args: object) -> Self:  # type: ignore[override] # TODO: put in the overloads
+        return cast(Self, Intersection[args])
 
-        def __eq__(self, other):
-            if not isinstance(other, _IntersectionGenericAlias):
-                return NotImplemented
-            return set(self.__args__) == set(other.__args__)
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, _IntersectionGenericAlias):
+            return NotImplemented
+        return set(self.__args__) == set(other.__args__)
 
-        def __hash__(self):
-            return hash(frozenset(self.__args__))
+    def __hash__(self) -> int:
+        return hash(frozenset(self.__args__))
 
-        def __instancecheck__(self, obj):
-            return self.__subclasscheck__(type(obj))
+    def __instancecheck__(self, obj: object) -> bool:
+        return self.__subclasscheck__(type(obj))
 
-        def __subclasscheck__(self, cls):
-            return any(issubclass(cls, arg) for arg in self.__args__)
+    def __subclasscheck__(self, cls: type[object]) -> bool:
+        return all(issubclass(cls, arg) for arg in self.__args__)
 
-        def __reduce__(self):
-            func, (_, args) = super().__reduce__()
-            return func, (Intersection, args)
+    def __reduce__(self) -> (object, object):
+        func, (_, args) = super().__reduce__()  # type: ignore[no-any-expr, misc]
+        return func, (Intersection, args)
 
-    if sys.version_info > (3, 9):
 
-        @_BasedSpecialForm
-        def Intersection(self, parameters):
-            """Intersection type; Intersection[X, Y] means both X and Y.
+if sys.version_info > (3, 9):
 
-            To define an intersection:
-            - If using __future__.annotations, shortform can be used e.g. A & B
-            - otherwise the fullform must be used e.g. Intersection[A, B].
+    @_BasedSpecialForm
+    def Intersection(self: _BasedSpecialForm, parameters: object) -> object:
+        """Intersection type; Intersection[X, Y] means both X and Y.
 
-            Details:
-            - The arguments must be types and there must be at least one.
-            - None as an argument is a special case and is replaced by
-              type(None).
-            - Intersections of intersections are flattened, e.g.::
+        To define an intersection:
+        - If using __future__.annotations, shortform can be used e.g. A & B
+        - otherwise the fullform must be used e.g. Intersection[A, B].
 
-                Intersection[Intersection[int, str], float] == Intersection[int, str, float]
+        Details:
+        - The arguments must be types and there must be at least one.
+        - None as an argument is a special case and is replaced by
+          type(None).
+        - Intersections of intersections are flattened, e.g.::
 
-            - Intersections of a single argument vanish, e.g.::
+            Intersection[Intersection[int, str], float] == Intersection[int, str, float]
 
-                Intersection[int] == int  # The constructor actually returns int
+        - Intersections of a single argument vanish, e.g.::
 
-            - Redundant arguments are skipped, e.g.::
+            Intersection[int] == int  # The constructor actually returns int
 
-                Intersection[int, str, int] == Intersection[int, str]
+        - Redundant arguments are skipped, e.g.::
 
-            - When comparing intersections, the argument order is ignored, e.g.::
+            Intersection[int, str, int] == Intersection[int, str]
 
-                Intersection[int, str] == Intersection[str, int]
+        - When comparing intersections, the argument order is ignored, e.g.::
 
-            - You cannot subclass or instantiate an intersection.
-            """
-            if parameters == ():
-                raise TypeError("Cannot take an Intersection of no types.")
-            if not isinstance(parameters, tuple):
-                parameters = (parameters,)
-            msg = "Intersection[arg, ...]: each arg must be a type."
-            parameters = tuple(_type_check(p, msg) for p in parameters)
-            parameters = _remove_dups_flatten(parameters)
-            if len(parameters) == 1:
-                return parameters[0]
-            return _IntersectionGenericAlias(self, parameters)
+            Intersection[int, str] == Intersection[str, int]
 
-    else:
-        # old version had the doc argument
-        Intersection = _BasedSpecialForm("Intersection", doc="")
+        - You cannot subclass or instantiate an intersection.
+        """
+        if parameters == ():
+            raise TypeError("Cannot take an Intersection of no types.")
+        if not isinstance(parameters, tuple):
+            parameters = (parameters,)
+        msg = "Intersection[arg, ...]: each arg must be a type."
+        parameters = tuple(_type_check(p, msg) for p in parameters)  # type: ignore[no-any-expr]
+        parameters = _remove_dups_flatten(parameters)  # type: ignore[no-any-expr]
+        if len(parameters) == 1:  # type: ignore[no-any-expr]
+            return parameters[0]  # type: ignore[no-any-expr]
+        return _IntersectionGenericAlias(self, parameters)  # type: ignore[arg-type, no-any-expr]
+
 else:
-    Intersection: _SpecialForm
+    Intersection = _BasedSpecialForm(
+        "Intersection", doc="", alias=_IntersectionGenericAlias
+    )
+
+
+class _TypeFormForm(_BasedSpecialForm, _root=True):  # type: ignore[misc]
+    def __init__(self, doc: str):
+        self._name = "TypeForm"
+        self._doc = self.__doc__ = doc
+
+    def __getitem__(self, parameters: object | tuple[object]) -> _BasedGenericAlias:
+        if not isinstance(parameters, tuple):
+            parameters = (parameters,)
+
+        return _BasedGenericAlias(self, parameters)  # type: ignore[arg-type]
+
+
+TypeForm = _TypeFormForm(doc="""\
+                         A type that can be used to represent a ``builtins.type`` or a ``SpecialForm``.
+                         For example:
+                        
+                             def f[T](t: TypeForm[T]) -> T: ...
+                            
+                             reveal_type(f(int | str))  # int | str
+                         """)

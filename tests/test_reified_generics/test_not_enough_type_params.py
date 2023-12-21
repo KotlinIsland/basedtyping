@@ -13,6 +13,6 @@ class Reified2(ReifiedGeneric[Tuple[T, U]]):
     pass
 
 
-def test_not_enough_type_params() -> None:
+def test_not_enough_type_params():
     with raises(NotEnoughTypeParametersError):
         Reified2[int]()  # type: ignore[misc]

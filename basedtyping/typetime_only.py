@@ -25,5 +25,5 @@ class assert_type(Generic[T]):
 
     # TODO: make this use ReifiedGeneric so that it can check at runtime
     # None return type on __new__ is supported in pyright but not mypy
-    def __new__(cls, _value: T) -> None:  # type: ignore[misc]
+    def __new__(cls, _value: T):  # type: ignore[empty-body]
         pass
