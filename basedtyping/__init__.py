@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
@@ -51,6 +52,7 @@ __all__ = (
     "Untyped",
     "Intersection",
     "TypeForm",
+    "generic",
 )
 
 if TYPE_CHECKING:
@@ -556,3 +558,44 @@ TypeForm = _TypeFormForm(doc="""\
                             
                              reveal_type(f(int | str))  # int | str
                          """)
+
+
+@dataclass
+class _BaseGenericFunction(Generic[P, T]):
+    fn: Callable[P, T]
+
+
+@dataclass
+class _GenericFunction(_BaseGenericFunction[P, T]):
+    # TODO: make this an TypeVarTuple when mypy supports it
+    #  https://github.com/python/mypy/issues/16696
+    parameters: tuple[object, ...] | None = None
+
+    def __getitem__(self, items: object) -> _ConcreteFunction[P, T]:
+        items = items if isinstance(items, tuple) else (items,)
+        return _ConcreteFunction(self.fn, items)
+
+
+@dataclass
+class _ConcreteFunction(_BaseGenericFunction[P, T]):
+    parameters: tuple[object, ...] | None = None
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        return self.fn(*args, **kwargs)
+
+
+class _GenericFunctionDecorator:
+    args: tuple[object, ...] | None = None
+
+    def __call__(self, fn: Callable[P, T]) -> _GenericFunction[P, T]:
+        return _GenericFunction(fn, self.args)
+
+    def __getitem__(self, items: object) -> Self:
+        items = items if isinstance(items, tuple) else (items,)
+        if self.args:
+            raise RuntimeError("erm, what the spruce?")
+        self.args = items
+        return self
+
+
+generic = _GenericFunctionDecorator()
