@@ -51,6 +51,7 @@ __all__ = (
     "Untyped",
     "Intersection",
     "TypeForm",
+    "SpecialForm",
 )
 
 if TYPE_CHECKING:
@@ -555,4 +556,30 @@ TypeForm = _TypeFormForm(doc="""\
                              def f[T](t: TypeForm[T]) -> T: ...
                             
                              reveal_type(f(int | str))  # int | str
+                             reveal_type(f(int))  # int
+                         """)
+
+class _SpecialFormForm(_BasedSpecialForm, _root=True):  # type: ignore[misc]
+    def __init__(self, doc: str):
+        self._name = "SpecialForm"
+        self._doc = self.__doc__ = doc
+
+    def __getitem__(self, parameters: object | tuple[object]) -> _BasedGenericAlias:
+        if not isinstance(parameters, tuple):
+            parameters = (parameters,)
+
+        return _BasedGenericAlias(self, parameters)  # type: ignore[arg-type]
+
+
+SpecialForm = _SpecialForm(doc="""\
+                         A type that can be used to represent a ``SpecialForm``.
+                         For example:
+                        
+                             reveal_type(int)  # type[int]
+                             reveal_type(int | str)  # SpecialForm[int | str]
+                            
+                             def f[T](t: SpecialForm[T]) -> T: ...
+                            
+                             reveal_type(f(int | str))  # int | str
+                             reveal_type(f(int))  # error
                          """)
