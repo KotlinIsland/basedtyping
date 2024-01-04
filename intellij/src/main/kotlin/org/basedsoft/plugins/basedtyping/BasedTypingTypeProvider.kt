@@ -33,7 +33,7 @@ private class BasedTypingTypeProvider : PyTypeProviderBase() {
 
     override fun getCallType(function: PyFunction, callSite: PyCallSiteExpression, context: TypeEvalContext): Ref<PyType>? {
         val annotation = function.annotation?.value ?: return null
-        return Ref.create(getType(annotation, context))
+        return Ref.create(getType(annotation, context, simple = true))
     }
 
     /**
@@ -63,11 +63,11 @@ class BasedPyFunctionTypeImpl(val callable: PyFunction) : PyFunctionTypeImpl(cal
     }
 }
 
-fun getType(expression: PyExpression, context: TypeEvalContext): PyType? {
+fun getType(expression: PyExpression, context: TypeEvalContext, simple: Boolean = false): PyType? {
     return getLiteralType(expression, context)
             ?: getUnionType(expression, context)
             ?: getTupleType(expression, context)
-            ?: Ref.deref(PyTypingTypeProvider.getType(expression, context))
+            ?: if (simple) null else PyTypingTypeProvider.getType(expression, context)?.get()
 }
 
 fun getLiteralType(target: PyExpression, context: TypeEvalContext): PyType? {
