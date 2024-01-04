@@ -51,6 +51,8 @@ __all__ = (
     "Untyped",
     "Intersection",
     "TypeForm",
+    "In",
+    "Out",
 )
 
 if TYPE_CHECKING:
@@ -556,3 +558,46 @@ TypeForm = _TypeFormForm(doc="""\
                             
                              reveal_type(f(int | str))  # int | str
                          """)
+
+
+class _InForm(_BasedSpecialForm, _root=True):  # type: ignore[misc]
+    def __init__(self, doc: str):
+        self._name = "In"
+        self._doc = self.__doc__ = doc
+
+    def __getitem__(self, parameters: object | tuple[object]) -> _BasedGenericAlias:
+        if not isinstance(parameters, tuple):
+            parameters = (parameters,)
+
+        return _BasedGenericAlias(self, parameters)  # type: ignore[arg-type]
+
+
+In = _InForm(doc="""\
+                 A type that can be used to represent a contravariant form of a type.
+                 For example:
+                
+                     list_of_objects: list[object]
+                     list_of_ints: list[In[int]] = list_of_objects  # valid
+                 """)
+
+
+class _OutForm(_BasedSpecialForm, _root=True):  # type: ignore[misc]
+    def __init__(self, doc: str):
+        self._name = "Out"
+        self._doc = self.__doc__ = doc
+
+    def __getitem__(self, parameters: object | tuple[object]) -> _BasedGenericAlias:
+        if not isinstance(parameters, tuple):
+            parameters = (parameters,)
+
+        return _BasedGenericAlias(self, parameters)  # type: ignore[arg-type]
+
+
+Out = _OutForm(doc="""\
+                 An annotation that can be used to represent a covariant form of a type.
+                 For example:
+                
+                     list_of_ints: list[int]
+                     list_of_objects: list[Out[object]] = a  # valid
+                 """)
+
