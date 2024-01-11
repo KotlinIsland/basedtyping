@@ -33,7 +33,7 @@ private class BasedTypingTypeProvider : PyTypeProviderBase() {
 
     override fun getCallType(function: PyFunction, callSite: PyCallSiteExpression, context: TypeEvalContext): Ref<PyType>? {
         val annotation = function.annotation?.value ?: return null
-        return Ref.create(getType(annotation, context, simple = true))
+        return getType(annotation, context, simple = true).ref()
     }
 
     /**

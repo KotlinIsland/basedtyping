@@ -5,6 +5,11 @@
 ## [Unreleased]
 
 ### Fixed
+- All functions returning `Any`
+
+## [0.1.1] - 2024-1-5
+
+### Fixed
 - Constructors incorrectly returning `None`
 
 ## [0.1.0] - 2023-12-20
