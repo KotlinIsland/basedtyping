@@ -1,7 +1,9 @@
 package org.basedsoft.plugins.basedtyping
 
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.Ref
 import com.intellij.psi.PsiElement
+import com.intellij.psi.impl.source.resolve.FileContextUtil
 import com.intellij.psi.util.siblings
 import com.jetbrains.python.PyTokenTypes
 import com.jetbrains.python.codeInsight.typing.PyTypingTypeProvider
@@ -67,6 +69,7 @@ fun getType(expression: PyExpression, context: TypeEvalContext, simple: Boolean 
     return getLiteralType(expression, context)
             ?: getUnionType(expression, context)
             ?: getTupleType(expression, context)
+            ?: getStringType(expression, context)
             ?: if (simple) null else PyTypingTypeProvider.getType(expression, context)?.get()
 }
 
@@ -100,6 +103,25 @@ fun getTupleType(target: PyExpression, context: TypeEvalContext): PyType? {
     }.children.map { getType(it as PyExpression, context) }.let { PyTupleType.create(target, it) }
 }
 
+fun getStringType(target: PyExpression, context: TypeEvalContext): PyType? {
+    if (target !is PyStringLiteralExpression) return null
+    val value = target.stringValue.trim()
+    if (!((value.startsWith("def (") || value.startsWith("(")) && "->" in value)) return null
+    val (l, r) = value.split("->")
+    val argsExpressionPart1 = toExpression(l.removePrefix("def").trim(), target)
+    val argsExpression = when (argsExpressionPart1) {
+        is PyTupleExpression -> argsExpressionPart1
+        is PyParenthesizedExpression -> argsExpressionPart1.containedExpression!!
+        else -> return null
+    }
+    val args = when (argsExpression) {
+        is PyTupleExpression -> argsExpression.map { getType(it, context) }
+        else -> listOf(getType(argsExpression, context))
+    }
+    val returnType = getType(toExpression(r.trim(), target) ?: return null, context)
+    return PyCallableTypeImpl(args.map { PyCallableParameterImpl.nonPsi(it) }, returnType)
+}
+
 fun PyFunction.collectOverloads() =
         siblings(forward = false)
         .filterIsInstance(PyFunction::class.java)
@@ -128,5 +150,17 @@ fun getOverloadReturn(func: PyFunction, context: TypeEvalContext) =
             .toSet()
             .takeIf { it.isNotEmpty() }
             ?.let { PyUnionType.union(it) }
+
+val FRAGMENT_OWNER: Key<PsiElement> = Key.create("PY_FRAGMENT_OWNER")
+
+fun toExpression(contents: String, anchor: PsiElement): PyExpression? {
+    val file = FileContextUtil.getContextFile(anchor)
+    if (file == null) return null
+    val fragment = PyUtil.createExpressionFromFragment(contents, file)
+    if (fragment != null) {
+        fragment.getContainingFile().putUserData(FRAGMENT_OWNER, anchor)
+    }
+    return fragment
+}
 
 fun PyType?.ref() = this?.let { Ref.create(it) }
