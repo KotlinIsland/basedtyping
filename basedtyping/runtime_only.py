@@ -12,5 +12,6 @@ LiteralType: Final = type(Literal[1])
 """A type that can be used to check if type hints are a ``typing.Literal`` instance"""
 
 # TODO: this is type[object], we need it to be 'SpecialForm[Union]' (or something)
+#  https://github.com/KotlinIsland/basedtyping/issues/53
 OldUnionType: Final_ext[type[object]] = type(Union[str, int])
 """A type that can be used to check if type hints are a ``typing.Union`` instance."""

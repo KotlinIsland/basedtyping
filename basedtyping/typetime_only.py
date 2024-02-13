@@ -16,14 +16,16 @@ if not TYPE_CHECKING:
     )
 
 
-class assert_type(Generic[T]):
+class assert_type(Generic[T]):  # noqa: N801
     """Used to assert that a value is type ``T``.
 
     note: This is more like a function than a class,
     but it's defined as a class so that you can explicitly specify the generic.
     """
 
+    # TODO: deprecate this  # noqa: TD003
     # TODO: make this use ReifiedGeneric so that it can check at runtime
+    #  https://github.com/KotlinIsland/basedtyping/issues/15
     # None return type on __new__ is supported in pyright but not mypy
     def __new__(cls, _value: T):  # type: ignore[empty-body]
         pass

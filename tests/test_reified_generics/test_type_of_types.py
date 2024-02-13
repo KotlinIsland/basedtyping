@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Tuple, Type
 
 if TYPE_CHECKING:
-    # these are just type-time tests, not real life pytest tests. they are only run by mypy
-    # they are currently failing since it's not currently possible to maintain the types of each type
+    # these are just type-time tests, not real life pytest tests. They are only run by mypy
+    # they are currently failing since it's not currently possible to maintain the
+    #  types of each type
 
     from typing import TypeVar
 

@@ -16,6 +16,7 @@ class Reified(ReifiedGeneric[Tuple[T, T2]]):
 
 
 # TODO: investigate this "metaclass conflict" mypy error
+#  https://github.com/KotlinIsland/basedtyping/issues/76
 class ReifiedList(ReifiedGeneric[Tuple[T]], List[T]):  # type:ignore[misc]
     pass
 
