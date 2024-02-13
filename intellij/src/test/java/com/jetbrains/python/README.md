@@ -1,0 +1,1 @@
+This stuff is copied from JetBrains/intellij-community because they don't ship it
