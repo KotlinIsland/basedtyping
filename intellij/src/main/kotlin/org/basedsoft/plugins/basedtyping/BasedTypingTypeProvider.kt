@@ -45,7 +45,7 @@ private class BasedTypingTypeProvider : PyTypeProviderBase() {
         val param = referenceExpression.followAssignmentsChain(PyResolveContext.defaultContext(context)).element
         if (param !is PyNamedParameter) return null
         val annotation = param.annotation?.value ?: return null
-        return getType(annotation, context)
+        return getType(annotation, context, simple=true)
     }
     /**
      * Needed to work around a limitation in PyTypingTypeProvider
@@ -137,6 +137,7 @@ fun getOverload(param: PyNamedParameter, func: PyFunction, context: TypeEvalCont
             .filterNotNull()
             .toSet()
             .takeIf { it.isNotEmpty() }
+            // TODO: keep the correct order
             ?.let { PyUnionType.union(it) }
 
 fun getOverloadReturn(func: PyFunction, context: TypeEvalContext) =

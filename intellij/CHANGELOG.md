@@ -4,8 +4,12 @@
 
 ## [Unreleased]
 
+## [0.1.3]
+
 ### Added
 - Callable literal types `() -> int`
+### Fixed
+- Narrowed types were broken
  
 ## [0.1.2] - 2023-01-12
 
