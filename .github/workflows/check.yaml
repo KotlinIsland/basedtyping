@@ -67,5 +67,5 @@ jobs:
         if: steps.cache.outputs.cache-hit == 'true'
         run: timeout 10s poetry run pip --version || rm -rf .venv
       - run: poetry install
-      - run: poetry run black --check --diff .
-      - run: poetry run ruff .
+      - run: poetry run ruff format --check --diff
+      - run: poetry run ruff check

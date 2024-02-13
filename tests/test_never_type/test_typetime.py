@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
     def test_never_equals_noreturn():
         # TODO: better way to check if types are equal
+        #  https://github.com/KotlinIsland/basedtyping/issues/33
         assert_type[NoReturn](cast(Never, 1))
         assert_type[Never](cast(NoReturn, 1))
 

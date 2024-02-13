@@ -13,7 +13,8 @@ class B:
     y: int
 
 
-class C(A, B): ...
+class C(A, B):
+    ...
 
 
 value = Intersection[A, B]
@@ -22,8 +23,7 @@ other = Intersection[A, int]
 
 def test_intersection():
     assert (
-        str(value)
-        == f"basedtyping.Intersection[{A.__module__}.{A.__qualname__},"
+        str(value) == f"basedtyping.Intersection[{A.__module__}.{A.__qualname__},"
         f" {B.__module__}.{B.__qualname__}]"
     )
 
