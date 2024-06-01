@@ -5,6 +5,7 @@ both type-time and at runtime.
 from __future__ import annotations
 
 import sys
+from types import FunctionType
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
@@ -53,6 +54,7 @@ __all__ = (
     "Untyped",
     "Intersection",
     "TypeForm",
+    "as_functiontype",
 )
 
 if TYPE_CHECKING:
@@ -574,3 +576,21 @@ TypeForm = _TypeFormForm(
              reveal_type(f(int | str))  # int | str
          """
 )
+
+
+# TODO: conditionally declare FunctionType with a BASEDMYPY so that this doesn't break everyone else
+#  https://github.com/KotlinIsland/basedmypy/issues/524
+def as_functiontype(fn: Callable[P, T]) -> FunctionType[P, T]:  # type: ignore[type-arg]
+    """Asserts that a ``Callable`` is a ``FunctionType`` and returns it
+
+    best used as a decorator to fix other incorrectly typed decorators:
+
+        def deco(fn: Callable[[], None]) -> Callable[[], None]: ...
+
+        @as_functiontype
+        @deco
+        def foo(): ...
+    """
+    if not isinstance(fn, FunctionType):  # type: ignore[redundant-expr]
+        raise TypeError(f"{fn} is not a FunctionType")
+    return fn  # type: ignore[unreachable]
