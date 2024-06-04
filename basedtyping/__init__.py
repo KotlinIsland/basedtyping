@@ -5,6 +5,7 @@ both type-time and at runtime.
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
@@ -53,6 +54,7 @@ __all__ = (
     "Untyped",
     "Intersection",
     "TypeForm",
+    "generic",
 )
 
 if TYPE_CHECKING:
@@ -508,7 +510,9 @@ class _IntersectionGenericAlias(_BasedGenericAlias, _root=True):
 if sys.version_info > (3, 9):
 
     @_BasedSpecialForm
-    def Intersection(self: _BasedSpecialForm, parameters: object) -> object:  # noqa: N802
+    def Intersection(  # noqa: N802
+        self: _BasedSpecialForm, parameters: object
+    ) -> object:
         """Intersection type; Intersection[X, Y] means both X and Y.
 
         To define an intersection:
@@ -574,3 +578,64 @@ TypeForm = _TypeFormForm(
              reveal_type(f(int | str))  # int | str
          """
 )
+
+
+@dataclass
+class _BaseGenericFunction(Generic[P, T]):
+    fn: Callable[P, T]
+
+
+@dataclass
+class _GenericFunction(_BaseGenericFunction[P, T]):
+    # TODO: make this an TypeVarTuple when mypy supports it
+    #  https://github.com/python/mypy/issues/16696
+    __type_params__: tuple[object, ...] | None = None
+    """Generic type parameters. Currently unused"""
+
+    def __getitem__(self, items: object) -> _ConcreteFunction[P, T]:
+        items = items if isinstance(items, tuple) else (items,)
+        return _ConcreteFunction(self.fn, items)
+
+
+@dataclass
+class _ConcreteFunction(_BaseGenericFunction[P, T]):
+    __type_args__: tuple[object, ...] | None = None
+    """Concrete type parameters. Currently unused"""
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        return self.fn(*args, **kwargs)
+
+
+class _GenericFunctionFacilitator:
+    __type_params__: tuple[object, ...] | None = None
+    args: tuple[object, ...]
+
+    def __call__(self, fn: Callable[P, T]) -> _GenericFunction[P, T]:
+        return _GenericFunction(fn, self.args)
+
+
+class _GenericFunctionDecorator:
+    """Decorate a function to allow supplying type parameters on calls:
+
+    @generic[T]
+    def f1(t: T): ...
+
+    f1[int](1)
+
+    @generic
+    def f2[T](t: T): ...
+
+    f2[int](1)
+    """
+
+    def __call__(self, fn: Callable[P, T]) -> _GenericFunction[P, T]:
+        params = cast(Union[Tuple[object, ...], None], getattr(fn, "__type_params__", None))
+        return _GenericFunction(fn, params)
+
+    def __getitem__(self, items: object) -> _GenericFunctionFacilitator:
+        result = _GenericFunctionFacilitator()
+        result.args = items if isinstance(items, tuple) else (items,)
+        return result
+
+
+generic = _GenericFunctionDecorator()
