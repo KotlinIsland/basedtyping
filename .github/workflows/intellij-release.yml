@@ -19,7 +19,7 @@ jobs:
       pull-requests: write
     steps:
 
-      # Check out current repository
+      # Check out the current repository
       - name: Fetch Sources
         uses: actions/checkout@v4
         with:
@@ -34,7 +34,7 @@ jobs:
 
       # Setup Gradle
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/actions/setup-gradle@v3
         with:
           gradle-home-cache-cleanup: true
 
@@ -52,8 +52,9 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      # Update Unreleased section with the current release note
+      # Update the Unreleased section with the current release note
       - name: Patch Changelog
+        working-directory: ./intellij
         if: ${{ steps.properties.outputs.changelog != '' }}
         env:
           CHANGELOG: ${{ steps.properties.outputs.changelog }}
@@ -62,6 +63,7 @@ jobs:
 
       # Publish the plugin to JetBrains Marketplace
       - name: Publish Plugin
+        working-directory: ./intellij
         env:
           PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
           CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
@@ -73,32 +75,32 @@ jobs:
       - name: Upload Release Asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ github.event.release.tag_name }} ./build/distributions/*
+        run: gh release upload ${{ github.event.release.tag_name }} ./intellij/build/distributions/*
 
       # Create a pull request
-      - name: Create Pull Request
-        if: ${{ steps.properties.outputs.changelog != '' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION="${{ github.event.release.tag_name }}"
-          BRANCH="changelog-update-$VERSION"
-          LABEL="release changelog"
-
-          git config user.email "action@github.com"
-          git config user.name "GitHub Action"
-
-          git checkout -b $BRANCH
-          git commit -am "Changelog update - $VERSION"
-          git push --set-upstream origin $BRANCH
-          
-          gh label create "$LABEL" \
-            --description "Pull requests with release changelog update" \
-            --force \
-            || true
-
-          gh pr create \
-            --title "Changelog update - \`$VERSION\`" \
-            --body "Current pull request contains patched \`CHANGELOG.md\` file for the \`$VERSION\` version." \
-            --label "$LABEL" \
-            --head $BRANCH
+#      - name: Create Pull Request
+#        if: ${{ steps.properties.outputs.changelog != '' }}
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: |
+#          VERSION="${{ github.event.release.tag_name }}"
+#          BRANCH="changelog-update-$VERSION"
+#          LABEL="release changelog"
+#
+#          git config user.email "action@github.com"
+#          git config user.name "GitHub Action"
+#
+#          git checkout -b $BRANCH
+#          git commit -am "Changelog update - $VERSION"
+#          git push --set-upstream origin $BRANCH
+#
+#          gh label create "$LABEL" \
+#            --description "Pull requests with release changelog update" \
+#            --force \
+#            || true
+#
+#          gh pr create \
+#            --title "Changelog update - \`$VERSION\`" \
+#            --body "Current pull request contains patched \`CHANGELOG.md\` file for the \`$VERSION\` version." \
+#            --label "$LABEL" \
+#            --head $BRANCH
