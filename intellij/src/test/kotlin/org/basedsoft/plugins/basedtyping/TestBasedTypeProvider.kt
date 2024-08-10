@@ -65,6 +65,13 @@ class PyTypeProviderTest : PyTestCase() {
         """ exprIs "int"
     }
 
+    fun `test Final`() {
+        """
+        from typing import Final
+        expr: Final = 1
+        """ exprIs "int"
+    }
+
     private infix fun String.exprIs(expectedType: String) {
         myFixture.configureByText(PythonFileType.INSTANCE, this.trimIndent())
         val expr = myFixture.findElementByText("expr", PyExpression::class.java)
