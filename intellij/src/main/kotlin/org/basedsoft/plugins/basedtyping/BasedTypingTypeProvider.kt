@@ -16,7 +16,7 @@ private class BasedTypingTypeProvider : PyTypeProviderBase() {
     override fun getReferenceType(referenceTarget: PsiElement, context: TypeEvalContext, anchor: PsiElement?): Ref<PyType>? {
         if (referenceTarget !is PyTargetExpression) return null
         val annotation = referenceTarget.annotation?.value ?: return null
-        return Ref.create(getType(annotation, context))
+        return Ref.create(getType(annotation, context) ?: return null)
     }
 
     override fun getParameterType(param: PyNamedParameter, func: PyFunction, context: TypeEvalContext): Ref<PyType>? {

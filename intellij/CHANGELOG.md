@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.1.4]
+
+### Fixed
+- `Final` types infer correctly
+
+
 ## [0.1.3]
 
 ### Added
