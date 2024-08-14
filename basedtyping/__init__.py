@@ -4,6 +4,8 @@ both type-time and at runtime.
 
 from __future__ import annotations
 
+import ast
+import typing
 import sys
 from types import FunctionType
 from typing import (  # type: ignore[attr-defined]
@@ -594,3 +596,49 @@ def as_functiontype(fn: Callable[P, T]) -> FunctionType[P, T]:  # type: ignore[t
     if not isinstance(fn, FunctionType):  # type: ignore[redundant-expr]
         raise TypeError(f"{fn} is not a FunctionType")
     return fn  # type: ignore[unreachable]
+
+
+class ForwardRef(typing.ForwardRef, _root=True):  # type: ignore[call-arg,misc]
+    """
+    Like `typing.ForwardRef`, but lets older Python versions use newer typing features.
+    Specifically, when evaluated, this transforms `X | Y` into `typing.Union[X, Y]`
+    and `list[X]` into `typing.List[X]` etc. (for all the types made generic in PEP 585)
+    if the original syntax is not supported in the current Python version.
+    """
+
+    def __init__(self, arg, *, is_argument=True, module=None, is_class=False):
+        if not isinstance(arg, str):
+            raise TypeError(f"Forward reference must be a string -- got {arg!r}")
+
+        # If we do `def f(*args: *Ts)`, then we'll have `arg = '*Ts'`.
+        # Unfortunately, this isn't a valid expression on its own, so we
+        # do the unpacking manually.
+        if arg.startswith("*"):
+            arg_to_compile = f"({arg},)[0]"  # E.g. (*Ts,)[0] or (*tuple[int, int],)[0]
+        else:
+            arg_to_compile = arg
+        try:
+            code = compile(arg_to_compile, "<string>", "eval")
+        except SyntaxError:
+            code = compile(
+                ast.parse(arg.removeprefix("def").lstrip(), mode="func_type"),
+                "<string>",
+                "func_type",
+                ast.PyCF_ONLY_AST,
+            )
+
+        self.__forward_arg__ = arg
+        self.__forward_code__ = code
+        self.__forward_evaluated__ = False
+        self.__forward_value__ = None
+        self.__forward_is_argument__ = is_argument
+        self.__forward_is_class__ = is_class
+        self.__forward_module__ = module
+
+    def _evaluate(
+        self,
+        globalns: dict[str, Any] | None,
+        localns: dict[str, Any] | None,
+        recursive_guard: frozenset[str] | None = None,
+    ) -> Any:
+        return typing.t_eval_direct(self, globalns, localns)
