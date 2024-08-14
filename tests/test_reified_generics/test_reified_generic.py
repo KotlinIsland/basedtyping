@@ -79,9 +79,7 @@ def test_concrete_subclass():
 
 
 def test_none_type():
-    # TODO: is this mypy error correct?
-    #  https://github.com/KotlinIsland/basedtyping/issues/74
-    assert Reified[None, None].__reified_generics__ == (NoneType, NoneType)  # type:ignore[comparison-overlap]
+    assert Reified[None, None].__reified_generics__ == (NoneType, NoneType)
 
 
 if TYPE_CHECKING:

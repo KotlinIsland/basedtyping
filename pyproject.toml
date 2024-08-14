@@ -5,11 +5,11 @@ authors = [
 ]
 description = "Utilities for basedmypy"
 name = "basedtyping"
-version = "0.1.4"
+version = "0.1.5"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-typing_extensions = "^4.1"
+python = "^3.9"
+typing_extensions = "^4.12.2"
 
 [tool.poetry.group.dev.dependencies]
 basedmypy = "^2"
@@ -24,10 +24,9 @@ requires = ["poetry-core>=1.0.8"]
 main = ["poetry==1.7.1"]
 
 [tool.mypy]
-python_version = 3.8
+python_version = 3.9
 packages = ["basedtyping", "tests"]
-# we can't use override until we bump the minimum typing_extensions or something
-disable_error_code = ["explicit-override"]
+always_false = ["BASEDMYPY_TYPE_CHECKING"]
 
 [tool.ruff.format]
 skip-magic-trailing-comma = true
