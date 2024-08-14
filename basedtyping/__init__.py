@@ -4,14 +4,16 @@ both type-time and at runtime.
 
 from __future__ import annotations
 
+import ast
 import sys
+import typing
+import warnings
 from types import FunctionType
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
     Callable,
     Final,
-    ForwardRef,
     Generic,
     NoReturn,
     Sequence,
@@ -23,14 +25,23 @@ from typing import (  # type: ignore[attr-defined]
     _remove_dups_flatten,
     _SpecialForm,
     _tp_cache,
-    _type_check,
     cast,
 )
 
 import typing_extensions
-from typing_extensions import Never, ParamSpec, Self, TypeAlias, TypeGuard, TypeVarTuple
+from typing_extensions import Never, ParamSpec, Self, TypeAlias, TypeGuard, TypeVarTuple, override
 
+from basedtyping import transformer
 from basedtyping.runtime_only import OldUnionType
+
+# TODO: `Final[Literal[False]]` but basedmypy will whinge on usages
+#  https://github.com/KotlinIsland/basedmypy/issues/782
+BASEDMYPY_TYPE_CHECKING: Final = False
+"""a special constant, is always `False`, but basedmypy will always assume it to be true
+
+if you aren't using basedmypy, you may have to configure your type checker to consider
+ this variable "always false"
+"""
 
 if not TYPE_CHECKING:
     if sys.version_info >= (3, 11):
@@ -55,6 +66,8 @@ __all__ = (
     "Intersection",
     "TypeForm",
     "as_functiontype",
+    "ForwardRef",
+    "BASEDMYPY_TYPE_CHECKING",
 )
 
 if TYPE_CHECKING:
@@ -66,13 +79,15 @@ else:
 class _BasedSpecialForm(_SpecialForm, _root=True):  # type: ignore[misc]
     _name: str
 
-    def __init_subclass__(cls, _root=False):  # noqa: FBT002
+    @override
+    def __init_subclass__(cls, _root=False):
         super().__init_subclass__(_root=_root)  # type: ignore[call-arg]
 
     def __init__(self, *args: object, **kwargs: object):
         self.alias = kwargs.pop("alias", _BasedGenericAlias)
         super().__init__(*args, **kwargs)
 
+    @override
     def __repr__(self) -> str:
         return "basedtyping." + self._name
 
@@ -81,12 +96,6 @@ class _BasedSpecialForm(_SpecialForm, _root=True):  # type: ignore[misc]
 
     def __rand__(self, other: object) -> object:
         return Intersection[other, self]
-
-    if sys.version_info < (3, 9):
-
-        @_tp_cache_typed
-        def __getitem__(self, item: object) -> object:
-            return self.alias(self, item)  # type: ignore[operator]
 
 
 class _BasedGenericAlias(_GenericAlias, _root=True):
@@ -247,6 +256,7 @@ class _ReifiedGenericMetaclass(type):
             cast(_ReifiedGenericMetaclass, subclass)._orig_class(),
         )
 
+    @override
     def __subclasscheck__(cls, subclass: object) -> bool:
         if not cls._is_subclass(subclass):
             return False
@@ -267,6 +277,7 @@ class _ReifiedGenericMetaclass(type):
         subclass._check_generics_reified()
         return cls._type_var_check(subclass.__reified_generics__)
 
+    @override
     def __instancecheck__(cls, instance: object) -> bool:
         if not cls._is_subclass(type(instance)):
             return False
@@ -275,6 +286,7 @@ class _ReifiedGenericMetaclass(type):
         return cls._type_var_check(cast(ReifiedGeneric[object], instance).__reified_generics__)
 
     # need the generic here for pyright. see https://github.com/microsoft/pyright/issues/5488
+    @override
     def __call__(cls: type[T], *args: object, **kwargs: object) -> T:
         """A placeholder ``__call__`` method that gets called when the class is
         instantiated directly, instead of first supplying the type parameters.
@@ -403,6 +415,7 @@ class ReifiedGeneric(Generic[T], metaclass=_ReifiedGenericMetaclass):
         reified_generic_copy._can_do_instance_and_subclass_checks_without_generics = False
         return reified_generic_copy
 
+    @override
     def __init_subclass__(cls):
         cls._can_do_instance_and_subclass_checks_without_generics = True
         super().__init_subclass__()
@@ -457,11 +470,7 @@ def issubform(form: _Forms, forminfo: _Forms) -> bool:
     return issubclass(form, forminfo)  # type: ignore[arg-type]
 
 
-if TYPE_CHECKING:
-    # We pretend that it's an alias to Any so that it's slightly more compatible with
-    #  other tools, basedmypy will still utilize the SpecialForm over the TypeAlias.
-    Untyped: TypeAlias = Any  # type: ignore[no-any-explicit]
-elif sys.version_info >= (3, 9):
+if BASEDMYPY_TYPE_CHECKING or not TYPE_CHECKING:
 
     @_BasedSpecialForm
     def Untyped(  # noqa: N802
@@ -473,26 +482,24 @@ elif sys.version_info >= (3, 9):
         This is more specialized than ``Any`` and can help with gradually typing modules.
         """
         raise TypeError(f"{self} is not subscriptable")
-
 else:
-    Untyped: Final = _BasedSpecialForm(
-        "Untyped",
-        doc=(
-            "Special type indicating that something isn't typed.\nThis is more"
-            " specialized than ``Any`` and can help with gradually typing modules."
-        ),
-    )
+    # We pretend that it's an alias to Any so that it's slightly more compatible with
+    #  other tools
+    Untyped: TypeAlias = Any  # type: ignore[no-any-explicit]
 
 
 class _IntersectionGenericAlias(_BasedGenericAlias, _root=True):
+    @override
     def copy_with(self, args: object) -> Self:  # type: ignore[override] # TODO: put in the overloads  # noqa: TD003
         return cast(Self, Intersection[args])
 
+    @override
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, _IntersectionGenericAlias):
             return NotImplemented
         return set(self.__args__) == set(other.__args__)
 
+    @override
     def __hash__(self) -> int:
         return hash(frozenset(self.__args__))
 
@@ -502,63 +509,61 @@ class _IntersectionGenericAlias(_BasedGenericAlias, _root=True):
     def __subclasscheck__(self, cls: type[object]) -> bool:
         return all(issubclass(cls, arg) for arg in self.__args__)
 
+    @override
     def __reduce__(self) -> (object, object):
         func, (_, args) = super().__reduce__()  # type: ignore[no-any-expr, misc]
         return func, (Intersection, args)
 
 
-if sys.version_info > (3, 9):
+@_BasedSpecialForm
+def Intersection(self: _BasedSpecialForm, parameters: object) -> object:  # noqa: N802
+    """Intersection type; Intersection[X, Y] means both X and Y.
 
-    @_BasedSpecialForm
-    def Intersection(self: _BasedSpecialForm, parameters: object) -> object:  # noqa: N802
-        """Intersection type; Intersection[X, Y] means both X and Y.
+    To define an intersection:
+    - If using __future__.annotations, shortform can be used e.g. A & B
+    - otherwise the fullform must be used e.g. Intersection[A, B].
 
-        To define an intersection:
-        - If using __future__.annotations, shortform can be used e.g. A & B
-        - otherwise the fullform must be used e.g. Intersection[A, B].
+    Details:
+    - The arguments must be types and there must be at least one.
+    - None as an argument is a special case and is replaced by
+      type(None).
+    - Intersections of intersections are flattened, e.g.::
 
-        Details:
-        - The arguments must be types and there must be at least one.
-        - None as an argument is a special case and is replaced by
-          type(None).
-        - Intersections of intersections are flattened, e.g.::
+        Intersection[Intersection[int, str], float] == Intersection[int, str, float]
 
-            Intersection[Intersection[int, str], float] == Intersection[int, str, float]
+    - Intersections of a single argument vanish, e.g.::
 
-        - Intersections of a single argument vanish, e.g.::
+        Intersection[int] == int  # The constructor actually returns int
 
-            Intersection[int] == int  # The constructor actually returns int
+    - Redundant arguments are skipped, e.g.::
 
-        - Redundant arguments are skipped, e.g.::
+        Intersection[int, str, int] == Intersection[int, str]
 
-            Intersection[int, str, int] == Intersection[int, str]
+    - When comparing intersections, the argument order is ignored, e.g.::
 
-        - When comparing intersections, the argument order is ignored, e.g.::
+        Intersection[int, str] == Intersection[str, int]
 
-            Intersection[int, str] == Intersection[str, int]
-
-        - You cannot subclass or instantiate an intersection.
-        """
-        if parameters == ():
-            raise TypeError("Cannot take an Intersection of no types.")
-        if not isinstance(parameters, tuple):
-            parameters = (parameters,)
-        msg = "Intersection[arg, ...]: each arg must be a type."
-        parameters = tuple(_type_check(p, msg) for p in parameters)  # type: ignore[no-any-expr]
-        parameters = _remove_dups_flatten(parameters)  # type: ignore[no-any-expr]
-        if len(parameters) == 1:  # type: ignore[no-any-expr]
-            return parameters[0]  # type: ignore[no-any-expr]
-        return _IntersectionGenericAlias(self, parameters)  # type: ignore[arg-type, no-any-expr]
-
-else:
-    Intersection = _BasedSpecialForm("Intersection", doc="", alias=_IntersectionGenericAlias)
+    - You cannot subclass or instantiate an intersection.
+    """
+    if parameters == ():
+        raise TypeError("Cannot take an Intersection of no types.")
+    if not isinstance(parameters, tuple):
+        parameters = (parameters,)
+    msg = "Intersection[arg, ...]: each arg must be a type."
+    parameters = tuple(_type_check(p, msg) for p in parameters)
+    parameters = _remove_dups_flatten(parameters)  # type: ignore[no-any-expr]
+    if len(parameters) == 1:  # type: ignore[no-any-expr]
+        return parameters[0]  # type: ignore[no-any-expr]
+    return _IntersectionGenericAlias(self, parameters)  # type: ignore[arg-type, no-any-expr]
 
 
 class _TypeFormForm(_BasedSpecialForm, _root=True):  # type: ignore[misc]
+    # TODO: decorator-ify  # noqa: TD003
     def __init__(self, doc: str):
         self._name = "TypeForm"
         self._doc = self.__doc__ = doc
 
+    @override
     def __getitem__(self, parameters: object | tuple[object]) -> _BasedGenericAlias:
         if not isinstance(parameters, tuple):
             parameters = (parameters,)
@@ -580,7 +585,7 @@ TypeForm = _TypeFormForm(
 
 # TODO: conditionally declare FunctionType with a BASEDMYPY so that this doesn't break everyone else
 #  https://github.com/KotlinIsland/basedmypy/issues/524
-def as_functiontype(fn: Callable[P, T]) -> FunctionType[P, T]:  # type: ignore[type-arg]
+def as_functiontype(fn: Callable[P, T]) -> FunctionType[P, T]:
     """Asserts that a ``Callable`` is a ``FunctionType`` and returns it
 
     best used as a decorator to fix other incorrectly typed decorators:
@@ -591,6 +596,120 @@ def as_functiontype(fn: Callable[P, T]) -> FunctionType[P, T]:  # type: ignore[t
         @deco
         def foo(): ...
     """
-    if not isinstance(fn, FunctionType):  # type: ignore[redundant-expr]
+    if not isinstance(fn, FunctionType):
         raise TypeError(f"{fn} is not a FunctionType")
-    return fn  # type: ignore[unreachable]
+    # https://github.com/KotlinIsland/basedmypy/issues/745
+    return cast("FunctionType[P, T]", fn)
+
+
+class ForwardRef(typing.ForwardRef, _root=True):  # type: ignore[call-arg,misc]
+    """
+    Like `typing.ForwardRef`, but lets older Python versions use newer typing features.
+    Specifically, when evaluated, this transforms `X | Y` into `typing.Union[X, Y]`
+    and `list[X]` into `typing.List[X]` etc. (for all the types made generic in PEP 585)
+    if the original syntax is not supported in the current Python version.
+    """
+
+    # older typing.ForwardRef doesn't have this
+    if sys.version_info < (3, 10):
+        __slots__ = ("__forward_module__", "__forward_is_class__")
+    elif sys.version_info < (3, 11):
+        __slots__ = ("__forward_is_class__",)
+
+    def __init__(self, arg: str, *, is_argument=True, module: object = None, is_class=False):
+        if not isinstance(arg, str):  # type: ignore[redundant-expr]
+            raise TypeError(f"Forward reference must be a string -- got {arg!r}")
+
+        # If we do `def f(*args: *Ts)`, then we'll have `arg = '*Ts'`.
+        # Unfortunately, this isn't a valid expression on its own, so we
+        # do the unpacking manually.
+        arg_to_compile = (
+            f"({arg},)[0]"  # E.g. (*Ts,)[0] or (*tuple[int, int],)[0]
+            if arg.startswith("*")
+            else arg
+        )
+        try:
+            with warnings.catch_warnings():
+                # warnings come from some based syntax, i can't remember what
+                warnings.simplefilter("ignore", category=SyntaxWarning)
+                code = compile(arg_to_compile, "<string>", "eval")
+        except SyntaxError:
+            try:
+                ast.parse(arg_to_compile.removeprefix("def "), mode="func_type")
+            except SyntaxError:
+                raise SyntaxError(f"invalid syntax in ForwardRef: {arg_to_compile}?") from None
+            else:
+                code = compile("'un-representable callable type'", "<string>", "eval")
+
+        self.__forward_arg__ = arg
+        self.__forward_code__ = code
+        self.__forward_evaluated__ = False
+        self.__forward_value__ = None
+        self.__forward_is_argument__ = is_argument
+        self.__forward_is_class__ = is_class
+        self.__forward_module__ = module
+
+    if sys.version_info >= (3, 13):
+
+        @override
+        def _evaluate(
+            self,
+            globalns: dict[str, object] | None,
+            localns: dict[str, object] | None,
+            type_params: tuple[TypeVar | ParamSpec | TypeVarTuple, ...] = (),
+            *,
+            recursive_guard: frozenset[str],
+        ) -> object | None:
+            return transformer._eval_direct(self, globalns, localns)
+
+    elif sys.version_info >= (3, 12):
+
+        @override
+        def _evaluate(
+            self,
+            globalns: dict[str, object] | None,
+            localns: dict[str, object] | None,
+            type_params: tuple[TypeVar | typing.ParamSpec | typing.TypeVarTuple, ...] | None = None,
+            *,
+            recursive_guard: frozenset[str],
+        ) -> object | None:
+            return transformer._eval_direct(self, globalns, localns)
+
+    else:
+
+        @override
+        def _evaluate(
+            self,
+            globalns: dict[str, object] | None,
+            localns: dict[str, object] | None,
+            recursive_guard: frozenset[str],
+        ) -> object | None:
+            return transformer._eval_direct(self, globalns, localns)
+
+
+def _type_check(arg: object, msg: str) -> object:
+    """Check that the argument is a type, and return it (internal helper).
+
+    As a special case, accept None and return type(None) instead. Also wrap strings
+    into ForwardRef instances. Consider several corner cases, for example plain
+    special forms like Union are not valid, while Union[int, str] is OK, etc.
+    The msg argument is a human-readable error message, e.g::
+
+        "Union[arg, ...]: arg should be a type."
+
+    We append the repr() of the actual value (truncated to 100 chars).
+    """
+    invalid_generic_forms = (Generic, typing.Protocol)
+
+    arg = _type_convert(arg)
+    if isinstance(arg, _GenericAlias) and arg.__origin__ in invalid_generic_forms:  # type: ignore[comparison-overlap]
+        raise TypeError(f"{arg} is not valid as type argument")
+    if arg in (Any, NoReturn, typing.Final, Untyped):
+        return arg
+    if isinstance(arg, _SpecialForm) or arg in (Generic, typing.Protocol):
+        raise TypeError(f"Plain {arg} is not valid as type argument")
+    if isinstance(arg, (type, TypeVar, ForwardRef)):
+        return arg
+    if not callable(arg):
+        raise TypeError(f"{msg} Got {arg!r:.100}.")
+    return arg

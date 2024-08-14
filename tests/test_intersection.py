@@ -35,19 +35,19 @@ def test_intersection_eq():
 
 def test_intersection_eq_hash():
     assert hash(value) == hash(value)
-    assert hash(value) != other
+    assert hash(value) != other  # type: ignore[comparison-overlap]
 
 
 def test_intersection_instancecheck():
-    assert isinstance(C(), value)  # type: ignore[arg-type]
-    assert not isinstance(A(), value)  # type: ignore[arg-type]
-    assert not isinstance(B(), value)  # type: ignore[arg-type]
+    assert isinstance(C(), value)  # type: ignore[arg-type, misc]
+    assert not isinstance(A(), value)  # type: ignore[arg-type, misc]
+    assert not isinstance(B(), value)  # type: ignore[arg-type, misc]
 
 
 def test_intersection_subclasscheck():
-    assert issubclass(C, value)  # type: ignore[arg-type]
-    assert not issubclass(A, value)  # type: ignore[arg-type]
-    assert not issubclass(B, value)  # type: ignore[arg-type]
+    assert issubclass(C, value)  # type: ignore[arg-type, misc]
+    assert not issubclass(A, value)  # type: ignore[arg-type, misc]
+    assert not issubclass(B, value)  # type: ignore[arg-type, misc]
 
 
 def test_intersection_reduce():

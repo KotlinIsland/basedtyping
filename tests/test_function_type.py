@@ -35,5 +35,4 @@ if TYPE_CHECKING:
         assert_function(str.join)
 
     def test_class_method_descriptor():
-        # method signature contains `Any`
-        assert_function(dict.fromkeys)  # type: ignore[no-any-expr]
+        assert_function(dict.fromkeys)
