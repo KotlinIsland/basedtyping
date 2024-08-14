@@ -7,6 +7,10 @@ description = "Utilities for basedmypy"
 name = "basedtyping"
 version = "0.1.4"
 
+[tool.poetry.build]
+script = "build.py"
+generate-setup-file = true
+
 [tool.poetry.dependencies]
 python = "^3.8"
 typing_extensions = "^4.1"
@@ -18,7 +22,7 @@ ruff = "~0.2.1"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.8"]
+requires = ["poetry-core>=1.0.8", "setuptools"]
 
 [tool.pyprojectx]
 main = ["poetry==1.7.1"]
