@@ -5,14 +5,14 @@ authors = [
 ]
 description = "Utilities for basedmypy"
 name = "basedtyping"
-version = "0.1.5"
+version = "0.1.6"
 
 [tool.poetry.dependencies]
 python = "^3.9"
 typing_extensions = "^4.12.2"
 
 [tool.poetry.group.dev.dependencies]
-basedmypy = "^2"
+basedmypy = "^2.7"
 pytest = "^8"
 ruff = "~0.2.1"
 

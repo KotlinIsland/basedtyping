@@ -6,15 +6,16 @@ from __future__ import annotations
 
 import ast
 import sys
+import types
 import typing
 import warnings
-from types import FunctionType
 from typing import (  # type: ignore[attr-defined]
     TYPE_CHECKING,
     Any,
     Callable,
     Final,
     Generic,
+    Mapping,
     NoReturn,
     Sequence,
     Tuple,
@@ -34,14 +35,13 @@ from typing_extensions import Never, ParamSpec, Self, TypeAlias, TypeGuard, Type
 from basedtyping import transformer
 from basedtyping.runtime_only import OldUnionType
 
-# TODO: `Final[Literal[False]]` but basedmypy will whinge on usages
+# TODO: `Final[Literal[False]]` basedmypy will still whinge on usages
 #  https://github.com/KotlinIsland/basedmypy/issues/782
 BASEDMYPY_TYPE_CHECKING: Final = False
-"""a special constant, is always `False`, but basedmypy will always assume it to be true
-
-if you aren't using basedmypy, you may have to configure your type checker to consider
- this variable "always false"
+"""special constants, are always `False`, but will always assume it to be true
+by the respective tool
 """
+
 
 if not TYPE_CHECKING:
     if sys.version_info >= (3, 11):
@@ -50,7 +50,10 @@ if not TYPE_CHECKING:
         from typing import _collect_type_vars as _collect_parameters
 
 __all__ = (
-    "Function",
+    "AnyCallable",
+    "FunctionType",
+    "TCallable",
+    "TFunction",
     "T",
     "in_T",
     "out_T",
@@ -106,18 +109,6 @@ class _BasedGenericAlias(_GenericAlias, _root=True):
         return Intersection[other, self]
 
 
-if TYPE_CHECKING:
-    Function = Callable[..., object]  # type: ignore[no-any-explicit]
-    """Any ``Callable``. useful when using mypy with ``disallow-any-explicit``
-    due to https://github.com/python/mypy/issues/9496
-
-    Cannot actually be called unless it's narrowed, so it should only really be used as
-    a bound in a ``TypeVar``.
-    """
-else:
-    # for isinstance checks
-    Function = Callable
-
 # Unlike the generics in other modules, these are meant to be imported to save you
 #  from the boilerplate
 T = TypeVar("T")
@@ -125,7 +116,28 @@ in_T = TypeVar("in_T", contravariant=True)
 out_T = TypeVar("out_T", covariant=True)
 Ts = TypeVarTuple("Ts")
 P = ParamSpec("P")
-Fn = TypeVar("Fn", bound=Function)
+
+AnyCallable = Callable[..., object]  # type: ignore[no-any-explicit]
+"""Any ``Callable``. useful when using mypy with ``disallow-any-explicit``
+due to https://github.com/python/mypy/issues/9496
+
+Cannot actually be called unless it's narrowed, so it should only really be used as
+a bound in a ``TypeVar``.
+"""
+
+
+if not BASEDMYPY_TYPE_CHECKING and TYPE_CHECKING:
+    FunctionType: TypeAlias = Callable[P, T]
+else:
+    # TODO: BasedSpecialGenericAlias  # noqa: TD003
+    FunctionType: _SpecialForm = typing._CallableType(types.FunctionType, 2)  # type: ignore[attr-defined]
+
+AnyFunction = FunctionType[..., object]  # type: ignore[no-any-explicit]
+
+TCallable = TypeVar("TCallable", bound=AnyCallable)
+TFunction = TypeVar("TFunction", bound=AnyFunction)
+Fn = TypeVar("Fn", bound=AnyCallable)
+"""this is deprecated, use `TCallable` or `TFunction` instead"""
 
 
 def _type_convert(arg: object) -> object:
@@ -583,8 +595,6 @@ TypeForm = _TypeFormForm(
 )
 
 
-# TODO: conditionally declare FunctionType with a BASEDMYPY so that this doesn't break everyone else
-#  https://github.com/KotlinIsland/basedmypy/issues/524
 def as_functiontype(fn: Callable[P, T]) -> FunctionType[P, T]:
     """Asserts that a ``Callable`` is a ``FunctionType`` and returns it
 
@@ -596,10 +606,9 @@ def as_functiontype(fn: Callable[P, T]) -> FunctionType[P, T]:
         @deco
         def foo(): ...
     """
-    if not isinstance(fn, FunctionType):
+    if not isinstance(fn, types.FunctionType):
         raise TypeError(f"{fn} is not a FunctionType")
-    # https://github.com/KotlinIsland/basedmypy/issues/745
-    return cast("FunctionType[P, T]", fn)
+    return cast(FunctionType[P, T], fn)
 
 
 class ForwardRef(typing.ForwardRef, _root=True):  # type: ignore[call-arg,misc]
@@ -655,12 +664,14 @@ class ForwardRef(typing.ForwardRef, _root=True):  # type: ignore[call-arg,misc]
         def _evaluate(
             self,
             globalns: dict[str, object] | None,
-            localns: dict[str, object] | None,
+            localns: Mapping[str, object] | None,
             type_params: tuple[TypeVar | ParamSpec | TypeVarTuple, ...] = (),
             *,
             recursive_guard: frozenset[str],
         ) -> object | None:
-            return transformer._eval_direct(self, globalns, localns)
+            return transformer._eval_direct(
+                self, globalns, localns if localns is None else dict(localns)
+            )
 
     elif sys.version_info >= (3, 12):
 
@@ -668,12 +679,14 @@ class ForwardRef(typing.ForwardRef, _root=True):  # type: ignore[call-arg,misc]
         def _evaluate(
             self,
             globalns: dict[str, object] | None,
-            localns: dict[str, object] | None,
+            localns: Mapping[str, object] | None,
             type_params: tuple[TypeVar | typing.ParamSpec | typing.TypeVarTuple, ...] | None = None,
             *,
             recursive_guard: frozenset[str],
         ) -> object | None:
-            return transformer._eval_direct(self, globalns, localns)
+            return transformer._eval_direct(
+                self, globalns, localns if localns is None else dict(localns)
+            )
 
     else:
 
@@ -681,10 +694,12 @@ class ForwardRef(typing.ForwardRef, _root=True):  # type: ignore[call-arg,misc]
         def _evaluate(
             self,
             globalns: dict[str, object] | None,
-            localns: dict[str, object] | None,
+            localns: Mapping[str, object] | None,
             recursive_guard: frozenset[str],
         ) -> object | None:
-            return transformer._eval_direct(self, globalns, localns)
+            return transformer._eval_direct(
+                self, globalns, localns if localns is None else dict(localns)
+            )
 
 
 def _type_check(arg: object, msg: str) -> object:
