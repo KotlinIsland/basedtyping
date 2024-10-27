@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # these are just type-time tests, not real life pytest tests. they are only run by mypy
 
-    from basedtyping import Function
+    from basedtyping import AnyCallable
     from basedtyping.typetime_only import assert_type
 
-    assert_function = assert_type[Function]
+    assert_function = assert_type[AnyCallable]
 
     def test_lambda_type():
         assert_function(lambda: ...)
