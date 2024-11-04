@@ -5,7 +5,7 @@ authors = [
 ]
 description = "Utilities for basedmypy"
 name = "basedtyping"
-version = "0.1.6"
+version = "0.1.7"
 
 [tool.poetry.dependencies]
 python = "^3.9"
