@@ -54,6 +54,7 @@ __all__ = (
     "FunctionType",
     "TCallable",
     "TFunction",
+    "Function",
     "T",
     "in_T",
     "out_T",
@@ -109,6 +110,20 @@ class _BasedGenericAlias(_GenericAlias, _root=True):
         return Intersection[other, self]
 
 
+if TYPE_CHECKING:
+    Function = Callable[..., object]  # type: ignore[no-any-explicit]
+    """deprecated, use `AnyCallable`/`AnyFunction` instead. Any ``Callable``.
+
+    useful when using mypy with ``disallow-any-explicit``
+    due to https://github.com/python/mypy/issues/9496
+
+    Cannot actually be called unless it's narrowed, so it should only really be used as
+    a bound in a ``TypeVar``.
+    """
+else:
+    # for isinstance checks
+    Function = Callable
+
 # Unlike the generics in other modules, these are meant to be imported to save you
 #  from the boilerplate
 T = TypeVar("T")
@@ -137,7 +152,7 @@ AnyFunction = FunctionType[..., object]  # type: ignore[no-any-explicit]
 TCallable = TypeVar("TCallable", bound=AnyCallable)
 TFunction = TypeVar("TFunction", bound=AnyFunction)
 Fn = TypeVar("Fn", bound=AnyCallable)
-"""this is deprecated, use `TCallable` or `TFunction` instead"""
+"""deprecated, use `TCallable` or `TFunction` instead"""
 
 
 def _type_convert(arg: object) -> object:
