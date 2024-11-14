@@ -31,6 +31,11 @@ def test_literal():
     validate("1 | 2", Union[Literal[1], Literal[2]])
 
 
+def test_negative():
+    validate("-1", Literal[-1])
+    validate("+1", Literal[1])
+
+
 def test_literal_union():
     validate("Union[1, 2]", Union[Literal[1], Literal[2]])
 
