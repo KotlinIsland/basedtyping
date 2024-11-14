@@ -107,7 +107,9 @@ class CringeTransformer(ast.NodeTransformer):
         )
         return ast.fix_missing_locations(result)
 
-    def _literal(self, value: ast.Constant | ast.Name | ast.Attribute) -> ast.Subscript:
+    def _literal(
+        self, value: ast.Constant | ast.Name | ast.Attribute | ast.UnaryOp
+    ) -> ast.Subscript:
         return self.subscript(self._typing("Literal"), value)
 
     def subscript(self, value: ast.expr, slice_: ast.expr) -> ast.Subscript:
@@ -177,6 +179,14 @@ class CringeTransformer(ast.NodeTransformer):
         if isinstance(value, int) or (self.string_literals and isinstance(value, str)):
             return self._literal(node)
         return node
+
+    @override
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> ast.AST:
+        if not isinstance(node.operand, ast.Constant):
+            return node
+        if not isinstance(node.op, (ast.UAdd, ast.USub)):
+            return node
+        return self._literal(node)
 
     @override
     def visit_Tuple(self, node: ast.Tuple) -> ast.AST:
