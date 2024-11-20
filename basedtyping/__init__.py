@@ -44,7 +44,9 @@ by the respective tool
 
 
 if not TYPE_CHECKING:
-    if sys.version_info >= (3, 11):
+    if sys.version_info >= (3, 13):
+        from typing import _collect_type_parameters as _collect_parameters
+    elif sys.version_info >= (3, 11):
         from typing import _collect_parameters
     else:
         from typing import _collect_type_vars as _collect_parameters
@@ -809,13 +811,17 @@ def get_type_hints(  # type: ignore[no-any-explicit]
                 if value is None:  # type: ignore[no-any-expr]
                     value = type(None)
                 if isinstance(value, str):  # type: ignore[no-any-expr]
-                    if sys.version_info < (3, 9):
-                        value = ForwardRef(value, is_argument=False)
-                    else:
-                        value = ForwardRef(value, is_argument=False, is_class=True)
-                value = typing._eval_type(value, base_globals, base_locals, recursive_guard=1)  # type: ignore[attr-defined, no-any-expr]
+                    value = ForwardRef(value, is_argument=False, is_class=True)
+                if sys.version_info < (3, 12):
+                    value = typing._eval_type(value, base_globals, base_locals)  # type: ignore[attr-defined, no-any-expr]
+                else:
+                    value = typing._eval_type(  # type: ignore[attr-defined]
+                        value,  # type: ignore[no-any-expr]
+                        base_globals,  # type: ignore[no-any-expr]
+                        base_locals,  # type: ignore[no-any-expr]
+                        base.__type_params__,
+                    )
                 hints[name] = value  # type: ignore[no-any-expr]
-
         return hints if include_extras else {k: _strip_annotations(t) for k, t in hints.items()}  # type: ignore[no-any-expr]
 
     if globalns is None:
@@ -836,8 +842,9 @@ def get_type_hints(  # type: ignore[no-any-explicit]
         # Return empty annotations for something that _could_ have them.
         if isinstance(obj, typing._allowed_types):  # type: ignore[ unreachable]
             return {}
-        raise TypeError(f"{obj!r} is not a module, class, method, " "or function.")
+        raise TypeError(f"{obj!r} is not a module, class, method, or function.")
     hints = dict(hints)  # type: ignore[no-any-expr]
+    type_params = getattr(obj, "__type_params__", ())  # type: ignore[no-any-expr]
     for name, value in hints.items():  # type: ignore[no-any-expr]
         if value is None:  # type: ignore[no-any-expr]
             value = type(None)
@@ -849,5 +856,8 @@ def get_type_hints(  # type: ignore[no-any-explicit]
                 is_argument=not isinstance(cast(object, obj), types.ModuleType),
                 is_class=False,
             )
-        hints[name] = typing._eval_type(value, globalns, localns)  # type: ignore[no-any-expr, attr-defined]
+        if sys.version_info >= (3, 12):
+            hints[name] = typing._eval_type(value, globalns, localns, type_params=type_params)  # type: ignore[no-any-expr, attr-defined]
+        else:
+            hints[name] = typing._eval_type(value, globalns, localns)  # type: ignore[no-any-expr, attr-defined]
     return hints if include_extras else {k: _strip_annotations(t) for k, t in hints.items()}  # type: ignore[no-any-expr]

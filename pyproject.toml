@@ -32,7 +32,7 @@ always_false = ["BASEDMYPY_TYPE_CHECKING"]
 skip-magic-trailing-comma = true
 
 [tool.pytest.ini_options]
-addopts = "--import-mode=importlib"
+filterwarnings = "error"
 xfail_strict = true
 
 [tool.ruff]
